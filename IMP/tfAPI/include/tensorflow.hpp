@@ -1,5 +1,6 @@
 #include "op_node.h"
 #include "input_node.h"
+#include "dfg.hpp"
 
 class TFMath {
 public:
@@ -10,11 +11,15 @@ public:
 class TensorFlow {
 public:
     TFMath math;
-    template<typename ValueType>
-    VariableNode<ValueType> Variable(ValueType initial_value, Type dtype, Shape shape, std::string name = "");
+    DFG& dfg_;
 
     template<typename ValueType>
-    ConstNode<ValueType> constant(ValueType initial_value, Type dtype = NULL, Shape shape = NULL, std::string name = "Const");    
+    VariableNode<ValueType> Variable(NDArray<ValueType> &initial_value, Type dtype, Shape shape, std::string name = "");
+
+    template<typename ValueType>
+    ConstantNode<ValueType> constant(NDArray<ValueType> &value, Type dtype = NULL, Shape shape = NULL, std::string name = "Const");    
 
     PlaceholderNode placeholder(Type dtype, Shape shape, std::string name = "");
+
+    void run();
 };

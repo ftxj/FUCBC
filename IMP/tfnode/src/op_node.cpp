@@ -5,6 +5,6 @@ void AbsNode::print() {
 
 }
 
-AddNode operator+() {
-
+AddNode operator+(BaseNode& x, BaseNode& y) {
+    return 
 }

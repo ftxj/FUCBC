@@ -1,3 +1,5 @@
+#pragma once
+
 #include<string>
 #include<vector>
 #include<map>
@@ -5,7 +7,6 @@
 
 #include "base_node.hpp"
 
-using namespace std;
 
 class Abs;
 class Add;
@@ -28,7 +29,10 @@ class Reshape;
 class Tensordot;
 
 class OpNode : public BaseNode {
-
+public:
+    OpNode() : BaseNode() {}
+    OpNode(std::string name, Shape shape, std::string dtype, std::string type) : 
+        BaseNode(name, shape, dtype, type) {}
 };
 
 
@@ -41,7 +45,9 @@ private:
     BaseNode &x_;
     BaseNode &y_;
 public:
-    BinaryOpNode(BaseNode &x, BaseNode &y) : x_(x), y_(y) {}
+    BinaryOpNode(BaseNode &x, BaseNode &y) : OpNode(), x_(x), y_(y) {}
+    BinaryOpNode(BaseNode &x, BaseNode &y, std::string name, Shape shape, std::string dtype, std::string type) : 
+        OpNode(name, shape, dtype, type), x_(x), y_(y) {}
 };
 
 class TernaryOpNode : public OpNode {
@@ -96,11 +102,19 @@ class ReShapeNode : public BinaryOpNode {
 
 class AddNode : public BinaryOpNode {
 public:
-    AddNode(BaseNode &x, BaseNode &y, std::string name = "") : BinaryOpNode(x, y) {} 
+    AddNode(BaseNode &x, BaseNode &y, std::string name, Shape shape, std::string dtype) : 
+        BinaryOpNode(x, y name, shape, dtype, "Add") {}
 };
 
-AddNode operator+(BaseNode &x, BaseNode &y) {
-    return AddNode(x, y);
+AddNode* operator+(BaseNode &x, BaseNode &y) {
+    assert(x.dtype_check(y));
+    assert(x.shape_equal(y));
+    AddNode* node = new AddNode(x, y, "", x.get_shape(), x.get_dtype());
+    node->add_predecessors(&x);
+    node->add_predecessors(&y);
+    x.add_predecessors(node);
+    y.add_predecessors(node);
+    return node;
 }
 
 

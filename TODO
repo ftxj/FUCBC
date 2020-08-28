@@ -1,3 +1,10 @@
+完成计算1+1
+✔    add node               
+✔    constant node               
+    DFG
+    Pass
+    run pass
+完成答应A+B dot图
 TensorFlow code to cpp DFG
 IMP hardware ISA arch
 Pass:

@@ -20,5 +20,7 @@ private:
     template<class T>
     void BFS(T func);
 public:
+    void add_input_node(InputNode *);
+    SourcesNode* get_sources_node() { return soruce; }
     void print();
 };
