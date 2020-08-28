@@ -9,12 +9,18 @@
 using namespace std;
 
 class Tensor {
-
+private:
+    Shape shape_;
+    Type dtype;
+public:
+    std::string  
 };
+
+
 
 class BaseNode : Tensor {
 private:
-    string node_type;
+    string type_;
     string node_name;
     size_t in_channels;
     Shape output_shape;

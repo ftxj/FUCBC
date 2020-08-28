@@ -14,7 +14,7 @@ public:
     VariableNode<ValueType> Variable(ValueType initial_value, Type dtype, Shape shape, std::string name = "");
 
     template<typename ValueType>
-    ConstNode<ValueType> constant(ValueType initial_value, Type dtype, Shape shape, std::string name = "Const");    
+    ConstNode<ValueType> constant(ValueType initial_value, Type dtype = NULL, Shape shape = NULL, std::string name = "Const");    
 
     PlaceholderNode placeholder(Type dtype, Shape shape, std::string name = "");
 };
