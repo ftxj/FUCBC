@@ -3,9 +3,9 @@
 #include<map>
 #include<set>
 
-#include "base_node.h"
-#include "../../data_structure/include/ndarray.hpp"
-#include "../../util.hpp"
+#include "tfnode/base_node.hpp"
+#include "data_structure/ndarray.hpp"
+//#include "../../util.hpp"
 
 class ConstNode;
 class PlaceholderNode;
@@ -14,9 +14,8 @@ class Shape;
 class Type;
 
 template<typename ValueType>
-class InputNode : public BaseNode {
+class InputNode : public BaseNode<ValueType> {
 private:
-    NDArray<ValueType> values_;
 public:
     InputNode(std::string name, Shape shape, std::string dtype, std::string type) : 
         BaseNode(name, shape, dtype, type) {}
@@ -24,8 +23,7 @@ public:
     InputNode(NDArray<ValueType>& value, std::string name, Shape shape, std::string dtype, std::string type) : 
         BaseNode(name, shape, dtype, type), values_(value) {}
     
-    void set_values(NDArray<ValueType> &value) { values_ = value; }
-    NDArray<ValueType>& get_values() { return values_; }
+    
 };
 
 template<typename ValueType>

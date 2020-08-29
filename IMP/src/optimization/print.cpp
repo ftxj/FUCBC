@@ -1,5 +1,5 @@
-#include "print.hpp"
-#include "op_node.h"
+#include "optimization/print.hpp"
+#include "tfnode/op_node.hpp"
 #include <iostream>
 
 void Print::exec(BaseNode* node, int level) {

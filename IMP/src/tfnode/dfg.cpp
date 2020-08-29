@@ -1,8 +1,8 @@
-#include "dfg.hpp"
+#include "tfnode/dfg.hpp"
 #include <iostream>
 #include <queue>
 #include <functional>
-#include "pass.hpp"
+#include "optimization/pass.hpp"
 using namespace std;
 
 void DFG::BFS(Pass p) {
