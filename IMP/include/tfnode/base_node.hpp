@@ -33,8 +33,8 @@ public:
     NDArray& get_values() { return ndarray_; }
     Shape get_shape() const { return ndarray_.get_shape(); }
 
-    bool dtype_check(Tensor& t) const { return dtype_ == t.dtype_; }
-    bool shape_equal(Tensor& t) const { return dtype_ == t.dtype_; }
+    // bool dtype_check(Tensor& t) const { return dtype_ == t.dtype_; }
+    // bool shape_equal(Tensor& t) const { return dtype_ == t.dtype_; }
 };
 
 class BaseNode : public Tensor {
@@ -60,8 +60,26 @@ public:
     std::vector<BaseNode*>::iterator successors_begin() { return successors_.begin(); }
     std::vector<BaseNode*>::iterator successors_end() { return successors_.end(); }
 
-    std::vector<BaseNode*>& add_successor(BaseNode* node) { successors_.push_back(node); }
-    std::vector<BaseNode*>& add_predecessors(BaseNode* node) { predecessors_.push_back(node); }
+    void add_successor(BaseNode* node) { successors_.push_back(node); }
+    void add_predecessors(BaseNode* node) { predecessors_.push_back(node); }
+
+    void delete_successor(BaseNode* node) { 
+        for(auto iter = successors_.begin(); iter != successors_.end(); ++iter) {
+            if(*iter == node) {
+                successors_.erase(iter);
+                break;
+            }
+        }
+    }
+    
+    void delete_predecessors(BaseNode* node) { 
+        for(auto iter = predecessors_.begin(); iter != predecessors_.end(); ++iter) {
+            if(*iter == node) {
+                predecessors_.erase(iter);
+                break;
+            }
+        }
+    }
 
     std::string get_class() { return type_; } 
 };
@@ -72,7 +90,7 @@ public:
 };
 
 
-class SinkNode : public : BaseNode {
+class SinkNode : public BaseNode {
 public:
     SinkNode() : BaseNode("sink", Shape(), "", "SinkNode") {}
 };

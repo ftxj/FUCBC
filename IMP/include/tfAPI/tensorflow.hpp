@@ -3,26 +3,16 @@
 #include "tfnode/input_node.hpp"
 #include "tfnode/dfg.hpp"
 #include "optimization/print.hpp"
+#include "data_structure/shape.hpp"
 #include <iostream>
 class TFMath {
+private:
+    std::string dtype_check(Tensor *x, Tensor *y);
+    Shape shape_check(Tensor *x, Tensor *y);
+    DFG* dfg_check(BaseNode *x, BaseNode *y);
 public:
     // AbsNode abs(Tensor x, std::string name = "");
-    
-    AddNode* add( Tensor *x,  Tensor *y, std::string name = "") {
-        assert(x->dtype_check(*y));
-        assert(x->shape_equal(*y));
-
-        BaseNode* a = static_cast< BaseNode*>(x);
-        BaseNode* b = static_cast< BaseNode*>(y);
-        //if(a != nullptr && b != nullptr) {
-        AddNode* node = new AddNode(a, b, name, a->get_shape(), a->get_dtype());
-        a->add_successor(node);
-        b->add_successor(node);
-        node->add_predecessors(a);
-        node->add_predecessors(b);
-        node->set_dfg(a->get_dfg());
-        return node;
-    }
+    AddNode* add(Tensor *x, Tensor *y, std::string name = "");
 };
 
 class TensorFlow {

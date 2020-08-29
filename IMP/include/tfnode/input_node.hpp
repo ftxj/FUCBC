@@ -32,7 +32,7 @@ public:
         InputNode(value, name, shape, dtype, "ConstNode") {}
 };
 
-// class PlaceholderNode : public BaseNode {
+// class PlaceholderNode : public InputNode {
 // public:
 //     PlaceholderNode(Type dtype, Shape shape, std::string name = "") : 
 //         InputNode(shape, dtype, name, "Placeholder") {}

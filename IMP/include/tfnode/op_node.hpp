@@ -56,7 +56,7 @@ public:
         BinaryOpNode(x, y, name, shape, dtype, "Add") {}
 };
 
-AddNode* operator+( Tensor &x,  Tensor &y);
+// AddNode* operator+(Tensor &x,  Tensor &y);
 
 // class TernaryOpNode : public OpNode {
 
