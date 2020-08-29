@@ -1,3 +1,4 @@
+#pragma once
 #include<string>
 #include<vector>
 #include<map>
@@ -5,27 +6,19 @@
 
 #include "tfnode/base_node.hpp"
 #include "tfnode/input_node.hpp"
-
-
-class SourcesNode  {
-    std::vector<BaseNode*> successors_;
-    std::vector<BaseNode*>& add_successor(BaseNode* node) { successors_.push_back(node); }
-};
-
-
-class SinkNode  {
-
-};
-
+#include "optimization/pass.hpp"
 
 class DFG {
 private:
-    SourcesNode* soruce;
-    template<class T>
-    void BFS(T func);
+    SourcesNode* soruce_;
+    
+    std::vector<BaseNode*> nodes;
 public:
-    template<typename T>
-    void add_input_node(InputNode<T> *);
-    SourcesNode* get_sources_node() { return soruce; }
-    void print();
+    DFG() : soruce_(new SourcesNode()) { }
+    void BFS(Pass* func);
+    void add_nodes(BaseNode* n) { nodes.push_back(n); }
+    BaseNode& get_last_node() const { return *nodes[nodes.size() - 1]; }
+    void add_input_node(InputNode *);
+    SourcesNode* get_sources_node() const { return soruce_; }
+    void print() const ;
 };

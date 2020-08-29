@@ -16,3 +16,6 @@ Pass:
     lowering
     IB Scheduling
     CodeGen
+
+技术难点：
+    1. 如何实现 NDArray: 模板很容易，不用模板呢

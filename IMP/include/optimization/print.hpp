@@ -1,54 +1,56 @@
-#include "tfnode/base_node.h"
+#pragma once
+#include "tfnode/base_node.hpp"
+#include "optimization/pass.hpp"
 #include <map>
 #include <string>
-using namespace std;
-
+#include <set>
 class Print : public Pass {
 private:
-    map<BaseNode*, bool> node_meeting;
+    std::set<BaseNode*> node_meeting;
     
-    map<string, string> color_config;
-    map<string, string> fontcolor_config;
-    map<string, string> shape_config;
-    map<string, string> label_config;
-    map<string, string> fillcolor_config;
+    std::map<std::string, std::string> color_config;
+    std::map<std::string, std::string> fontcolor_config;
+    std::map<std::string, std::string> shape_config;
+    std::map<std::string, std::string> label_config;
+    std::map<std::string, std::string> fillcolor_config;
 
-    string number;
-    bool first_meeting(BaseNode*);
+    std::string number;
+    bool first_meeting(BaseNode* n) { return node_meeting.find(n) == node_meeting.end()?false : true; }
 public:
-    void exec(BaseNode*, int);
+    Print() {}
+    virtual void exec(BaseNode*, int);
 
-    void exec(ConstNode* u, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(PlaceholderNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(VariableNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
+    virtual void exec(ConstantNode* u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(PlaceholderNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(VariableNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
 
-    void exec(AbsNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(AddNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(ArgMinNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(DivNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(ExpNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(FloorDivNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(LessNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(MulNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(RealDivNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(SigmoidNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(SqrtNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(SquareNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(SubNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(SumNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(Conv2DNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(ExpandDimNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(MatMulNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(ReshapeNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(TensordotNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
+    //void exec(AbsNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    virtual void exec(AddNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(ArgMinNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(DivNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(ExpNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(FloorDivNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(LessNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(MulNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(RealDivNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(SigmoidNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(SqrtNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(SquareNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(SubNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(SumNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(Conv2DNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(ExpandDimNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(MatMulNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(ReshapeNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(TensordotNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
 
-    void exec(AssignNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(AssignAddNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(GatherNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(IdentityNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(PackNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(SelectNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(StackNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
-    void exec(NoOpNodeu, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(AssignNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(AssignAddNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(GatherNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(IdentityNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(PackNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(SelectNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(StackNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    // void exec(NoOpNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
 
 };

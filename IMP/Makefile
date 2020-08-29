@@ -14,15 +14,15 @@ vpath %.cpp $(SRC_DIR)
 define make-goal
 $1/%.o: %.cpp
 	echo 1
-	$(CC) $(INCLUDES) -c $$< -o $$@
+	$(CC) -std=c++11 $(INCLUDES) -c -fpic $$< -o $$@
 endef
 
 .PHONY: all checkdirs clean
 
-all: checkdirs build/test.exe
+all: checkdirs build/libtest.so
 
-build/test.exe: $(OBJ)
-	$(LD) $^ -o $@
+build/libtest.so: $(OBJ)
+	$(LD) -shared $^ -o $@
 
 checkdirs: $(BUILD_DIR)
 

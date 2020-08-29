@@ -1,3 +1,4 @@
+#pragma once
 #include<string>
 #include<vector>
 #include<map>
@@ -7,30 +8,28 @@
 #include "data_structure/ndarray.hpp"
 //#include "../../util.hpp"
 
-class ConstNode;
-class PlaceholderNode;
-class VariableNode;
-class Shape;
-class Type;
+// class ConstNode;
+// class PlaceholderNode;
+// class VariableNode;
+// class Shape;
+// class Type;
 
-template<typename ValueType>
-class InputNode : public BaseNode<ValueType> {
+class InputNode : public BaseNode {
 private:
 public:
     InputNode(std::string name, Shape shape, std::string dtype, std::string type) : 
         BaseNode(name, shape, dtype, type) {}
     
-    InputNode(NDArray<ValueType>& value, std::string name, Shape shape, std::string dtype, std::string type) : 
-        BaseNode(name, shape, dtype, type), values_(value) {}
+    InputNode(NDArray& value, std::string name, Shape shape, std::string dtype, std::string type) : 
+        BaseNode(value, name, shape, dtype, type) {}
     
     
 };
 
-template<typename ValueType>
-class ConstantNode : public InputNode<ValueType> {
+class ConstantNode : public InputNode {
 public:
-    ConstantNode(NDArray<ValueType> &value, std::string dtype, Shape shape, std::string name = "Const") :
-        InputNode(shape, dtype, name, "ConstNode"), value_(value) {}
+    ConstantNode(NDArray &value, std::string dtype, Shape shape, std::string name = "Const") :
+        InputNode(value, name, shape, dtype, "ConstNode") {}
 };
 
 // class PlaceholderNode : public BaseNode {

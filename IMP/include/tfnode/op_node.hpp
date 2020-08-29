@@ -4,7 +4,7 @@
 #include<vector>
 #include<map>
 #include<set>
-
+#include <assert.h>
 #include "tfnode/base_node.hpp"
 
 
@@ -28,12 +28,11 @@
 // class Reshape;
 // class Tensordot;
 
-template<typename ValueType>
-class OpNode : public BaseNode<ValueType> {
+class OpNode : public BaseNode {
 public:
     OpNode() : BaseNode() {}
     OpNode(std::string name, Shape shape, std::string dtype, std::string type) : 
-        BaseNode<ValueType>(name, shape, dtype, type) {}
+        BaseNode(name, shape, dtype, type) {}
 };
 
 
@@ -41,35 +40,23 @@ public:
 
 // };
 
-template<typename ValueType>
-class BinaryOpNode : public OpNode<ValueType> {
+class BinaryOpNode : public OpNode {
 private:
-    BaseNode &x_;
-    BaseNode &y_;
+    BaseNode *x_;
+    BaseNode *y_;
 public:
-    BinaryOpNode(BaseNode &x, BaseNode &y) : OpNode(), x_(x), y_(y) {}
-    BinaryOpNode(BaseNode &x, BaseNode &y, std::string name, Shape shape, std::string dtype, std::string type) : 
-        OpNode<ValueType>(name, shape, dtype, type), x_(x), y_(y) {}
+    BinaryOpNode(BaseNode *x, BaseNode *y) : OpNode(), x_(x), y_(y) {}
+    BinaryOpNode(BaseNode *x, BaseNode *y, std::string name, Shape shape, std::string dtype, std::string type) : 
+        OpNode(name, shape, dtype, type), x_(x), y_(y) {}
 };
 
-template<typename ValueType>
-class AddNode : public BinaryOpNode<ValueType> {
+class AddNode : public BinaryOpNode {
 public:
-    AddNode(BaseNode &x, BaseNode &y, std::string name, Shape shape, std::string dtype) : 
-        BinaryOpNode<ValueType>(x, y name, shape, dtype, "Add") {}
+    AddNode(BaseNode *x, BaseNode *y, std::string name, Shape shape, std::string dtype) : 
+        BinaryOpNode(x, y, name, shape, dtype, "Add") {}
 };
 
-template<typename V1, typename V2>
-AddNode<V1>& operator+(BaseNode<V1> &x, BaseNode<V2> &y) {
-    assert(x.dtype_check(y));
-    assert(x.shape_equal(y));
-    AddNode<V1>* node = new AddNode<V1>(x, y, "", x.get_shape(), x.get_dtype());
-    node->add_predecessors(&x);
-    node->add_predecessors(&y);
-    x.add_predecessors(node);
-    y.add_predecessors(node);
-    return *node;
-}
+AddNode* operator+( Tensor &x,  Tensor &y);
 
 // class TernaryOpNode : public OpNode {
 

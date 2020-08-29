@@ -10,14 +10,11 @@
 
 class Evaluate : public Pass {
 public:
-    template<typename T>
-    void exec(ConstNode<T>* node, int l) {
+    void exec(ConstNode* node, int l) {
 
     } 
 
-    template<typename T>
-    void exec(AddNode<T>* node, int l) {
-        for(auto v : )
+    void exec(AddNode* node, int l) {
     } 
 
 };

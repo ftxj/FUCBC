@@ -1,9 +1,10 @@
+#pragma once
 #include<string>
 #include<vector>
 #include<map>
 #include<set>
 
-#include "tfnode/base_node.h"
+#include "tfnode/base_node.hpp"
 
 // class Assign;
 // class AssignAdd;

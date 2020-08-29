@@ -6,12 +6,9 @@
 
 class Pass {
 public:
-    template<typename T>
-    void exec(BaseNode<T>*, int);
-    template<typename T>
-    void exec(ConstNode<T>*, int);
-    template<typename T>
-    void exec(AddNode<T>*, int);
+    virtual void exec(BaseNode*, int) = 0;
+    virtual void exec(ConstantNode*, int) = 0;
+    virtual void exec(AddNode*, int) = 0;
 
     // void exec(PlaceholderNode*, int);
     // void exec(VariableNode*, int);
