@@ -18,9 +18,13 @@ private:
     DFG* dfg_;
 public:
     Tensor() : ndarray_(), name_("unknow"), dtype_("unknow") {}
+    
     Tensor(std::string name) :  ndarray_(), name_(name), dtype_("unknow") {}
+    Tensor(std::string name, std::string dtype) :  ndarray_(), name_(name), dtype_(dtype) {}
+
     Tensor(std::string name, Shape shape) : name_(name), dtype_("unknow"), ndarray_(shape) {}
     Tensor(std::string name, Shape shape, std::string dtype) : name_(name), dtype_(dtype), ndarray_(shape) {}
+    
     Tensor(NDArray ndarray, std::string name, Shape shape, std::string dtype) : ndarray_(ndarray), name_(name), dtype_(dtype) {
         ndarray_.reshape(shape);
     }
@@ -32,7 +36,8 @@ public:
     std::string get_dtype() const { return dtype_; }
     NDArray& get_values() { return ndarray_; }
     Shape get_shape() const { return ndarray_.get_shape(); }
-
+    void reshape(Tensor* y) { ndarray_.reshape(y->get_shape()); }
+    void redtype(Tensor* y) { dtype_ = y->dtype_; }
     // bool dtype_check(Tensor& t) const { return dtype_ == t.dtype_; }
     // bool shape_equal(Tensor& t) const { return dtype_ == t.dtype_; }
 };
@@ -46,6 +51,8 @@ private:
 public:
     BaseNode() : Tensor() {}
     BaseNode(std::string name) : Tensor(name), type_("unknow") {}
+    BaseNode(std::string name, std::string type) : Tensor(name), type_(type) {}
+    BaseNode(std::string name, std::string dtype, std::string type) : Tensor(name, dtype), type_(type) {}
     BaseNode(std::string name, Shape shape, std::string dtype, std::string type) : 
         Tensor(name, shape, dtype), type_(type) {}
 

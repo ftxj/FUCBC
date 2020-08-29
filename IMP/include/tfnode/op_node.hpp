@@ -31,104 +31,184 @@
 class OpNode : public BaseNode {
 public:
     OpNode() : BaseNode() {}
+    OpNode(std::string name, std::string type) : 
+        BaseNode(name, type) {}
+    OpNode(std::string name, std::string dtype, std::string type) : 
+        BaseNode(name, dtype, type) {}
     OpNode(std::string name, Shape shape, std::string dtype, std::string type) : 
         BaseNode(name, shape, dtype, type) {}
 };
 
+class ElementWiseOp {
 
-// class UnaryOpNode : public OpNode {
+};
 
-// };
+class UnaryOpNode : public OpNode {
+private:
+    BaseNode *x_;
+public:
+    UnaryOpNode(BaseNode *x) : OpNode(), x_(x) {
+        reshape(x_);
+        redtype(x_);
+    }
+    UnaryOpNode(BaseNode *x, std::string name, std::string type) : OpNode(name, type), x_(x) {
+        reshape(x_);
+        redtype(x_);
+    }
+    UnaryOpNode(BaseNode *x, std::string name, std::string dtype, std::string type) : OpNode(name, dtype, type), x_(x) {
+        reshape(x_);
+    }
+    UnaryOpNode(BaseNode *x, std::string name, Shape shape, std::string dtype, std::string type) : 
+        OpNode(name, shape, dtype, type), x_(x) {}
+};
 
 class BinaryOpNode : public OpNode {
 private:
     BaseNode *x_;
     BaseNode *y_;
 public:
-    BinaryOpNode(BaseNode *x, BaseNode *y) : OpNode(), x_(x), y_(y) {}
+    BinaryOpNode(BaseNode *x, BaseNode *y) : OpNode(), x_(x), y_(y) {
+        // TODO
+        reshape(x_);
+        redtype(x_);
+    }
+    BinaryOpNode(BaseNode *x, BaseNode *y, std::string name, std::string type) 
+        : OpNode(name, type), x_(x), y_(y) {
+        reshape(x_);
+        redtype(x_);
+    }
+    BinaryOpNode(BaseNode *x, BaseNode *y, std::string name, std::string dtype, std::string type) 
+        : OpNode(name, dtype, type), x_(x),  y_(y) {
+        reshape(x_);
+    }
     BinaryOpNode(BaseNode *x, BaseNode *y, std::string name, Shape shape, std::string dtype, std::string type) : 
         OpNode(name, shape, dtype, type), x_(x), y_(y) {}
 };
 
-class AddNode : public BinaryOpNode {
-public:
-    AddNode(BaseNode *x, BaseNode *y, std::string name, Shape shape, std::string dtype) : 
-        BinaryOpNode(x, y, name, shape, dtype, "Add") {}
-};
-
 // AddNode* operator+(Tensor &x,  Tensor &y);
 
-// class TernaryOpNode : public OpNode {
-
-// };
+class TernaryOpNode : public OpNode {
+private:
+    BaseNode *x_;
+    BaseNode *y_;
+    BaseNode *z_;
+public:
+    TernaryOpNode(BaseNode *x, BaseNode *y, BaseNode *z) : OpNode(), x_(x), y_(y), z_(z) {}
+    TernaryOpNode(BaseNode *x, BaseNode *y, BaseNode *z, std::string name, Shape shape, std::string dtype, std::string type) : 
+        OpNode(name, shape, dtype, type), x_(x), y_(y), z_(z) {}
+};
 
 // class NNOpNode : public OpNode {
 
 // };
 
+class AbsNode : public UnaryOpNode {
+public:
+    AbsNode(BaseNode *x, std::string name, Shape shape, std::string dtype) : 
+        UnaryOpNode(x, name, shape, dtype,"AbsNode") {}
+};
 
-// class AbsNode : public UnaryOpNode {
+class ExpNode : public UnaryOpNode {
+public:
+    ExpNode(BaseNode *x, std::string name, Shape shape, std::string dtype) : 
+        UnaryOpNode(x, name, shape, dtype,"ExpNode") {}
+};
 
-// };
+class SigmoidNode : public UnaryOpNode {
+public:
+    SigmoidNode(BaseNode *x, std::string name, Shape shape, std::string dtype) : 
+        UnaryOpNode(x, name, shape, dtype,"SigmodNode") {}
+};
 
+class SqrtNode : public UnaryOpNode {
+public:
+    SqrtNode(BaseNode *x, std::string name, Shape shape, std::string dtype) : 
+        UnaryOpNode(x, name, shape, dtype,"SqrtNode") {}
+};
 
-// class ArgMinNode : public UnaryOpNode {
+class SquareNode : public UnaryOpNode {
+public:
+    SquareNode(BaseNode *x, std::string name, Shape shape, std::string dtype) : 
+        UnaryOpNode(x, name, shape, dtype,"SquareNode") {}
+};
 
-// };
+class ReShapeNode : public UnaryOpNode {
+public:
+    ReShapeNode(BaseNode *x, std::string name, Shape shape, std::string dtype) : 
+        UnaryOpNode(x, name, shape, dtype, "ReShapeNode") {}
+};
 
-// class ExpNode : public UnaryOpNode {
+// add node for MatMul
+class TransposeNode : public UnaryOpNode {
+public:
+    TransposeNode(BaseNode *x, std::string name, Shape shape, std::string dtype) : 
+        UnaryOpNode(x, name, shape, dtype,"TransposeNode") {}
+};
 
-// };
+// TODO reduce shape and expand shape class
+class ArgMinNode : public UnaryOpNode {
+private:
+    int axis_;
+public:
+    ArgMinNode(BaseNode *x, int axis, std::string name, Shape shape, std::string dtype) : 
+        UnaryOpNode(x, name, shape, dtype,"ArgMinNode") {}
+};
 
-// class SigmoidNode : public UnaryOpNode {
+class ExpandDimsNode : public UnaryOpNode {
+private:
+    int axis_;
+public:
+    ExpandDimsNode(BaseNode *x, int axis, std::string name, Shape shape, std::string dtype) : 
+        UnaryOpNode(x, name, shape, dtype, "ExpandDims"), axis_(axis) {}
+};
 
-// };
+class AddNode : public BinaryOpNode, ElementWiseOp {
+public:
+    AddNode(BaseNode *x, BaseNode *y, std::string name, Shape shape, std::string dtype) : 
+        BinaryOpNode(x, y, name, shape, dtype, "Add") {}
+};
 
-// class SqrtNode : public UnaryOpNode {
+class DivNode : public BinaryOpNode, ElementWiseOp {
+public:
+    DivNode(BaseNode *x, BaseNode *y, std::string name, Shape shape, std::string dtype) : 
+        BinaryOpNode(x, y, name, shape, dtype, "DivNode") {}
+};
 
-// };
+class FloorDivNode : public BinaryOpNode, ElementWiseOp {
+public:
+    FloorDivNode(BaseNode *x, BaseNode *y, std::string name, Shape shape, std::string dtype) : 
+        BinaryOpNode(x, y, name, shape, dtype, "FloorDivNode") {}
+};
 
-// class SquareNode : public UnaryOpNode {
+class LessNode : public BinaryOpNode, ElementWiseOp{
+public:
+    LessNode(BaseNode *x, BaseNode *y, std::string name, Shape shape, std::string dtype) : 
+        BinaryOpNode(x, y, name, shape, dtype, "LessNode") {}
+};
 
-// };
+class MulNode : public BinaryOpNode, ElementWiseOp {
+public:
+    MulNode(BaseNode *x, BaseNode *y, std::string name, Shape shape, std::string dtype) : 
+        BinaryOpNode(x, y, name, shape, dtype, "MulNode") {}
+};
 
-// class ExpandDimsNode : public UnaryOpNode {
+class SubNode : public BinaryOpNode, ElementWiseOp {
+public:
+    SubNode(BaseNode *x, BaseNode *y, std::string name, Shape shape, std::string dtype) : 
+        BinaryOpNode(x, y, name, shape, dtype, "SubNode") {}
+};
 
-// };
+class MatMulNode : public BinaryOpNode {
+public:
+    MatMulNode(BaseNode *x, BaseNode *y, std::string name, Shape shape, std::string dtype) : 
+        BinaryOpNode(x, y, name, shape, dtype, "MatMulNode") {}
+};
 
-// class MatMulNode : public BinaryOpNode {
-
-// };
-
-// class TensordotNode : public BinaryOpNode {
-
-// };
-
-// class ReShapeNode : public BinaryOpNode {
-
-// };
-
-
-
-// class DivNode : public BinaryOpNode {
-
-// };
-
-// class FloorDivNode : public BinaryOpNode {
-//     // floor(x / y)
-// }
-
-// class LessNode : public BinaryOpNode {
-
-// }
-
-// class MulNode : public BinaryOpNode {
-//     // floor(x / y)
-// }
-
-// class SubNode : public BinaryOpNode {
-//     // floor(x / y)
-// }
+class TensordotNode : public BinaryOpNode {
+public:
+    TensordotNode(BaseNode *x, BaseNode *y, std::string name, Shape shape, std::string dtype) : 
+        BinaryOpNode(x, y, name, shape, dtype, "TensordotNode") {}
+};
 
 // class Conv2DNode : public NNOpNode {
     
