@@ -4,7 +4,7 @@
 #include<vector>
 #include<map>
 #include<set>
-#include <assert.h>
+#include "error/assert.hpp"
 #include "tfnode/base_node.hpp"
 
 
@@ -165,7 +165,7 @@ public:
 class AddNode : public BinaryOpNode, ElementWiseOp {
 public:
     AddNode(BaseNode *x, BaseNode *y, std::string name, Shape shape, std::string dtype) : 
-        BinaryOpNode(x, y, name, shape, dtype, "Add") {}
+        BinaryOpNode(x, y, name, shape, dtype, "AddNode") {}
 };
 
 class DivNode : public BinaryOpNode, ElementWiseOp {

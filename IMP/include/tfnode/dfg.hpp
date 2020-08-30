@@ -12,14 +12,20 @@ class DFG {
 private:
     SourcesNode* soruce_;
     SinkNode* sink_;
+    
     std::vector<BaseNode*> nodes_vector_;
     std::vector<int> topological_order_;
     bool has_topological_order_;
-    void delete_node(BaseNode* n);
+
     void topological_sort();
     int get_index(BaseNode* n);
+
+    void delete_node(BaseNode* n);
 public:
-    DFG() : soruce_(new SourcesNode()), sink_(new SinkNode()) { }
+    DFG() : soruce_(new SourcesNode()), sink_(new SinkNode()) {
+        nodes_vector_.push_back(soruce_);
+        nodes_vector_.push_back(sink_);
+    }
 
 
     void add_node(BaseNode* n, std::vector<BaseNode*> pre_nodes);

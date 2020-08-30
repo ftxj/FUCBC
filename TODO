@@ -1,10 +1,8 @@
 1. 从Tensorflow语句构建 DFG 图
 √ 2020.08.28 490 LoC 1.1 构建input和comput节点各一种
 √ 2020.08.29 988 LoC 1.2 构建全部支持的input, compute节点
-doing... 1.3 完成 “Print” pass, 正确打印计算图
-
-1.4 完成 dot 合适输出并绘图
-1.5 完成 “计算” pass
+√ 2020.08.30 1146LoC 1.3 完成 “Print” pass, 正确打印dot计算图
+doing... 1.4 完成 “计算” pass
 
 2. 完成DFG IB expansion阶段
 2.1 完成Pack节点打包操作

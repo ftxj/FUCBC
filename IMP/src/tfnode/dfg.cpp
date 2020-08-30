@@ -11,27 +11,36 @@ void DFG::topological_sort() {
     if(has_topological_order_) {
         return;
     }
+    topological_order_.clear();
+    
     std::vector<int> dfg_node_out_edges(nodes_vector_.size(), 0);
     std::vector<BaseNode*> topo_order_nodes;
-    
     std::vector<int> this_round_added;
-
     std::vector<int> in_ordered_masked(nodes_vector_.size(), 0);
 
     for(int i = 0; i < nodes_vector_.size(); ++i) {
-        dfg_node_out_edges[i] = nodes_vector_[i]->get_successors().size();
+        dfg_node_out_edges[i] = nodes_vector_[i]->get_predecessors().size();
+        std::cout <<  nodes_vector_[i]->get_name() << "," << dfg_node_out_edges[i] << std::endl;
         if(dfg_node_out_edges[i] == 0) {
             this_round_added.push_back(i);
             topo_order_nodes.push_back(nodes_vector_[i]);
+            topological_order_.push_back(0);
             in_ordered_masked[i] = 1;
         }
     }
+    int round = 1;
+    for(auto n : this_round_added) {
+        std::cout << "round " << 0 << std::endl;
+        std::cout << nodes_vector_[n]->get_name() << std::endl;
+    }
     while(topo_order_nodes.size() != nodes_vector_.size()) {
+
         if(this_round_added.size() == 0) {
-            assert(0);
+            assert_msg(0, "DFG with cycle, topo=" << topo_order_nodes.size() << ", DFG=" << nodes_vector_.size());
         }
         for(auto n : this_round_added) {
             for(auto succ : nodes_vector_[n]->get_successors()) {
+                assert_msg(get_index(succ) >= 0, "node " << succ->get_name() << "not in vector");
                 dfg_node_out_edges[get_index(succ)] --;
             }
         }
@@ -40,12 +49,28 @@ void DFG::topological_sort() {
             if(dfg_node_out_edges[i] == 0 && in_ordered_masked[i] == 0) {
                 this_round_added.push_back(i);
                 topo_order_nodes.push_back(nodes_vector_[i]);
+                in_ordered_masked[i] = 1;
+                topological_order_.push_back(round);
             }
         }
+        for(auto n : this_round_added) {
+            std::cout << "round " << round << std::endl;
+            std::cout << nodes_vector_[n]->get_name() << std::endl;
+        }
+        round++;
     }
+    nodes_vector_ = topo_order_nodes;
     has_topological_order_ = true;
 }
 
+int DFG::get_index(BaseNode* n) {
+    for(int i = 0; i < nodes_vector_.size(); ++i) {
+        if(n == nodes_vector_[i]) {
+            return i;
+        }
+    }
+    return -1;
+}
 void DFG::add_input_node(InputNode *node) {
     has_topological_order_ = false;
     connect_with_source(node);
@@ -54,7 +79,9 @@ void DFG::add_input_node(InputNode *node) {
 }
 
 void DFG::add_node(BaseNode* n, std::vector<BaseNode*> pre_nodes) {
-    assert(pre_nodes.size() > 0);
+    std::cout << nodes_vector_.size() << std::endl;
+    assert_msg(pre_nodes.size() > 0, "add node with no pre");
+    assert_msg(get_index(n) == -1, "node already in vector");
     has_topological_order_ = false;
     nodes_vector_.push_back(n);
     if(is_connect_with_source(n)) {
@@ -67,7 +94,7 @@ void DFG::add_node(BaseNode* n, std::vector<BaseNode*> pre_nodes) {
             delete_connect_with_sink(pre_node);
         }
     }
-    if(n->get_predecessors().size() == 0) {
+    if(n->get_successors().size() == 0) {
         connect_with_sink(n);
     }
 }
@@ -157,9 +184,11 @@ void DFG::delete_connect_with_source(BaseNode* n) {
 
 void DFG::topological_pass(Pass* pass) {
     topological_sort();
+    pass->handle_header();
     for(int i = 0; i < topological_order_.size(); ++i) {
         pass->exec(nodes_vector_[i], topological_order_[i]);
     }
+    pass->handle_tail();
 }
 
 void DFG::BFS(Pass* p) {

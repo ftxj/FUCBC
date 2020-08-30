@@ -6,6 +6,7 @@
 #include <iostream>
 #include "data_structure/ndarray.hpp"
 #include "data_structure/shape.hpp"
+#include "error/assert.hpp"
 //#include "tfnode/dfg.hpp"
 
 class DFG;
@@ -40,6 +41,7 @@ public:
     void redtype(Tensor* y) { dtype_ = y->dtype_; }
     // bool dtype_check(Tensor& t) const { return dtype_ == t.dtype_; }
     // bool shape_equal(Tensor& t) const { return dtype_ == t.dtype_; }
+
 };
 
 class BaseNode : public Tensor {
@@ -67,8 +69,8 @@ public:
     std::vector<BaseNode*>::iterator successors_begin() { return successors_.begin(); }
     std::vector<BaseNode*>::iterator successors_end() { return successors_.end(); }
 
-    void add_successor(BaseNode* node) { successors_.push_back(node); }
-    void add_predecessors(BaseNode* node) { predecessors_.push_back(node); }
+    void add_successor(BaseNode* node) { assert_msg(node!=this, "self cycle occur"); successors_.push_back(node); }
+    void add_predecessors(BaseNode* node) { assert_msg(node!=this, "self cycle occur"); predecessors_.push_back(node); }
 
     void delete_successor(BaseNode* node) { 
         for(auto iter = successors_.begin(); iter != successors_.end(); ++iter) {

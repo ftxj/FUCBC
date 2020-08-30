@@ -1,7 +1,7 @@
 CC			:= g++
 LD			:= g++
 
-MODULES		:= data_structure tfAPI tfnode optimization
+MODULES		:= data_structure tfAPI tfnode optimization error
 SRC_DIR		:= $(addprefix src/,$(MODULES))
 BUILD_DIR	:= $(addprefix build/,$(MODULES))
 
@@ -14,7 +14,7 @@ vpath %.cpp $(SRC_DIR)
 define make-goal
 $1/%.o: %.cpp
 	echo 1
-	$(CC) -std=c++11 $(INCLUDES) -c -fpic $$< -o $$@
+	$(CC) -std=c++11 -rdynamic $(INCLUDES) -c -fpic $$< -o $$@
 endef
 
 .PHONY: all checkdirs clean
@@ -22,7 +22,7 @@ endef
 all: checkdirs build/libtest.so
 
 build/libtest.so: $(OBJ)
-	$(LD) -shared $^ -o $@
+	$(LD) -shared -rdynamic $^ -o $@
 
 checkdirs: $(BUILD_DIR)
 

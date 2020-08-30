@@ -3,6 +3,13 @@
 #include <string>
 int main() {
     TensorFlow tf;
+    /*
+        in1     in2     in3     in4     in5
+          |-op1-|         |-op2-|          
+              |-----op3-------|
+                     |--op4---|
+                                sink
+    */
     auto in1 = tf.constant(3, "int32", Shape(1), "in1");
     auto in2 = tf.constant(4, "int32", Shape(1), "in2");
     auto op1 = tf.math.add(in1, in2, "add_op1");

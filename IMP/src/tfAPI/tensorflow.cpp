@@ -28,7 +28,7 @@ VariableNode* TensorFlow::Variable(NDArray value, std::string dtype, Shape shape
 }
 
 void TensorFlow::run() {
-    dfg_->BFS(print);
+    dfg_->topological_pass(print);
 }
 
 std::string TFMath::dtype_check(Tensor *x, Tensor *y) {
@@ -45,7 +45,7 @@ std::pair<BaseNode*, BaseNode*> TFMath::element_wise_shape_transfer(Tensor *x, T
     BaseNode* a = static_cast<BaseNode*>(x);
     BaseNode* b = static_cast<BaseNode*>(y);
     if(a == nullptr || b == nullptr) {
-        assert(0);
+        assert_msg(0, "static_cast<> fail: x=" << x << ",y=" << y);
     }
     if(a->get_shape() > b->get_shape()) {
         ReShapeNode* node = new ReShapeNode(b, "reshap", a->get_shape(), dtype_check(x, y));
@@ -147,12 +147,12 @@ MatMulNode* TFMath::matmul(Tensor *x, Tensor *y,
     BaseNode* a = static_cast<BaseNode*>(x);
     BaseNode* b = static_cast<BaseNode*>(y);
     if(transpose_a) {
-        TransposeNode* trans_a_node = new TransposeNode(a, a->get_name(), a->get_shape(), ""); 
+        TransposeNode* trans_a_node = new TransposeNode(a, "Transpose1", a->get_shape(), a->get_dtype());
         dfg_->add_node(trans_a_node, {a});
         a = trans_a_node;
     }
     if(transpose_b) {
-        TransposeNode* trans_b_node = new TransposeNode(b, b->get_name(), b->get_shape(), ""); 
+        TransposeNode* trans_b_node = new TransposeNode(b, "Transpose2", b->get_shape(), b->get_dtype()); 
         dfg_->add_node(trans_b_node, {b});
         b = trans_b_node;
     }
