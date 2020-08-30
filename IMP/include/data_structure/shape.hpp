@@ -26,6 +26,7 @@ public:
     // TODO need fix bug
     bool operator <(const Shape& d) { return shape_.size() < d.shape_.size(); }
     bool operator >(const Shape& d) { return shape_.size() > d.shape_.size(); }
+    bool operator ==(const Shape& d) { return shape_.size() == d.shape_.size(); }
 
     static Shape get_matmul_shape(Shape a, Shape b) {
         // TODO

@@ -29,17 +29,19 @@ public:
 
     virtual void exec(TransposeNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
     virtual void exec(AbsNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
-    virtual void exec(AddNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
     virtual void exec(ArgMinNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
-    virtual void exec(DivNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
     virtual void exec(ExpNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
-    virtual void exec(FloorDivNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
-    virtual void exec(LessNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
-    virtual void exec(MulNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
-    virtual void exec(SigmoidNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
     virtual void exec(SqrtNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
     virtual void exec(SquareNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    virtual void exec(SigmoidNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+  
+    virtual void exec(AddNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
     virtual void exec(SubNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    virtual void exec(MulNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    virtual void exec(DivNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    virtual void exec(FloorDivNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+    virtual void exec(LessNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
+
     virtual void exec(ExpandDimsNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
     virtual void exec(MatMulNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
     virtual void exec(TensordotNode *u, int l) { exec(static_cast<BaseNode*>(u), l); }
