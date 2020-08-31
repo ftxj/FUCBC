@@ -7,13 +7,13 @@
 // using namespace std;
 
 // class DFG;
-// class BaseNode;
-// class BaseNode;
+// class TensorNode;
+// class TensorNode;
 
 // class NodeMerge {
 //     ISAConfig 
 // public:
 //     void run();
 //     void merge_with_predecessors();
-//     void merge_with_predecessors(BaseNode* );
+//     void merge_with_predecessors(TensorNode* );
 // };

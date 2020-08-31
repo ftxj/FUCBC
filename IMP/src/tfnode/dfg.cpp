@@ -14,7 +14,7 @@ void DFG::topological_sort() {
     topological_order_.clear();
     
     std::vector<int> dfg_node_out_edges(nodes_vector_.size(), 0);
-    std::vector<BaseNode*> topo_order_nodes;
+    std::vector<Node*> topo_order_nodes;
     std::vector<int> this_round_added;
     std::vector<int> in_ordered_masked(nodes_vector_.size(), 0);
 
@@ -63,7 +63,7 @@ void DFG::topological_sort() {
     has_topological_order_ = true;
 }
 
-int DFG::get_index(BaseNode* n) {
+int DFG::get_index(Node* n) {
     for(int i = 0; i < nodes_vector_.size(); ++i) {
         if(n == nodes_vector_[i]) {
             return i;
@@ -71,14 +71,9 @@ int DFG::get_index(BaseNode* n) {
     }
     return -1;
 }
-void DFG::add_input_node(InputNode *node) {
-    has_topological_order_ = false;
-    connect_with_source(node);
-    connect_with_sink(node);
-    nodes_vector_.push_back(node);
-}
 
-void DFG::add_node(BaseNode* n, std::vector<BaseNode*> pre_nodes) {
+
+void DFG::add_node(Node* n, std::vector<Node*> pre_nodes) {
     std::cout << nodes_vector_.size() << std::endl;
     assert_msg(pre_nodes.size() > 0, "add node with no pre");
     assert_msg(get_index(n) == -1, "node already in vector");
@@ -99,7 +94,7 @@ void DFG::add_node(BaseNode* n, std::vector<BaseNode*> pre_nodes) {
     }
 }
 
-void DFG::replace_node(BaseNode *n, BaseNode *new_node) {
+void DFG::replace_node(Node *n, Node *new_node) {
     has_topological_order_ = false;
     for(auto pre_node : n->get_predecessors()) {
         new_node->add_predecessors(pre_node);
@@ -113,7 +108,7 @@ void DFG::replace_node(BaseNode *n, BaseNode *new_node) {
     delete_node(n);
 }
 
-void DFG::delete_node(BaseNode *n) {
+void DFG::delete_node(Node *n) {
     for(auto pre_node : n->get_predecessors()) {
         pre_node->delete_successor(n);
     }
@@ -129,7 +124,7 @@ void DFG::delete_node(BaseNode *n) {
     has_topological_order_ = false;
 }
 
-bool DFG::is_connect_with_sink(BaseNode* n) {
+bool DFG::is_connect_with_sink(Node* n) {
     for(auto succ_node : n->get_successors()) {
         if(succ_node == sink_) {
             return true;
@@ -138,13 +133,13 @@ bool DFG::is_connect_with_sink(BaseNode* n) {
     return false;
 }
 
-void DFG::connect_with_sink(BaseNode* n) {
+void DFG::connect_with_sink(Node* n) {
     n->add_successor(sink_);
     sink_->add_predecessors(n);
     has_topological_order_ = false;
 }
 
-void DFG::delete_connect_with_sink(BaseNode* n) {
+void DFG::delete_connect_with_sink(Node* n) {
     for(auto succ_node : n->get_successors()) {
         if(succ_node == sink_) {
             n->delete_successor(sink_);
@@ -155,7 +150,7 @@ void DFG::delete_connect_with_sink(BaseNode* n) {
     has_topological_order_ = false;
 }
 
-bool DFG::is_connect_with_source(BaseNode* n) {
+bool DFG::is_connect_with_source(Node* n) {
     for(auto pre_node : n->get_predecessors()) {
         if(pre_node == soruce_) {
             return true;
@@ -164,13 +159,13 @@ bool DFG::is_connect_with_source(BaseNode* n) {
     return false;
 }
 
-void DFG::connect_with_source(BaseNode* n) {
+void DFG::connect_with_source(Node* n) {
     n->add_predecessors(soruce_);
     soruce_->add_successor(n);
     has_topological_order_ = false;
 }
 
-void DFG::delete_connect_with_source(BaseNode* n) {
+void DFG::delete_connect_with_source(Node* n) {
     for(auto pre_node : n->get_predecessors()) {
         if(pre_node == soruce_) {
             n->delete_predecessors(soruce_);
@@ -192,8 +187,8 @@ void DFG::topological_pass(Pass* pass) {
 }
 
 void DFG::BFS(Pass* p) {
-    std::queue<std::pair<BaseNode*, int>> Q;
-    std::map<BaseNode*, bool> visited;
+    std::queue<std::pair<Node*, int>> Q;
+    std::map<Node*, bool> visited;
 
     int level = 0;
     Q.push({soruce_, level});

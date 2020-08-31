@@ -12,31 +12,39 @@
 // class ConstantNode;
 // class PlaceholderNode;
 // class VariableNode;
-
-class InputNode : public BaseNode {
+template<typename T>
+class InputNode : public TensorNode<T> {
 private:
 public:
-    InputNode(std::string name, Shape shape, std::string dtype, std::string type) : 
-        BaseNode(name, shape, dtype, type) {}
+    InputNode(std::string name, Shape shape, std::string type) : 
+        TensorNode<T>(name, shape, type) {}
     
-    InputNode(NDArray& value, std::string name, Shape shape, std::string dtype, std::string type) : 
-        BaseNode(value, name, shape, dtype, type) {}
+    InputNode(const NDArray<T>& value, std::string name, Shape shape, std::string type) : 
+        TensorNode<T>(value, name, shape, type) {}
 };
 
-class ConstantNode : public InputNode {
+template<typename T>
+class ConstantNode : public InputNode<T> {
 public:
-    ConstantNode(NDArray &value, std::string dtype, Shape shape, std::string name = "Const") :
-        InputNode(value, name, shape, dtype, "ConstNode") {}
+    ConstantNode(const NDArray<T> &value, Shape shape, std::string name = "Const") :
+        InputNode<T>(value, name, shape, "ConstantNode") {}
 };
 
-class PlaceholderNode : public InputNode {
+template<typename T>
+class PlaceholderNode : public InputNode<T> {
 public:
-    PlaceholderNode(std::string dtype, Shape shape, std::string name = "") : 
-        InputNode(name, shape, dtype, "PlaceholderNode") {}
+    PlaceholderNode(Shape shape, std::string name = "") : 
+        InputNode<T>(name, shape, "PlaceholderNode") {}
 };
 
-class VariableNode : public InputNode {
+template<typename T>
+class VariableNode : public InputNode<T> {
 public:
-    VariableNode(NDArray &value, std::string dtype, Shape shape, std::string name = "") :
-        InputNode(value, name, shape, dtype, "VariableNode") {}
+    VariableNode(NDArray<T> &value, Shape shape, std::string name = "") :
+        InputNode<T>(value, name, shape, "VariableNode") {}
 };
+
+
+typedef ConstantNode<int> IntConstantNode;
+typedef PlaceholderNode<int> IntPlaceholderNode;
+typedef VariableNode<int> IntVariableNode; 

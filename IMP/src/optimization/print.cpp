@@ -33,7 +33,7 @@ Print::Print(){
     CONFIG_COLOR("SourcesNode","white");
 }
 
-bool Print::first_meeting(BaseNode* n) {
+bool Print::first_meeting(Node* n) {
     if(node_meeting.find(n) == node_meeting.end()) {
         node_meeting.insert(n);
         return true;   
@@ -50,7 +50,8 @@ void Print::handle_tail() {
     std::cout << "}" << std::endl;
 }
 
-void Print::exec(BaseNode* node, int level) {
+void Print::exec(Node* node, int level) {
+    //node->print(levle);
     std::string node_class = node->get_class();
     if(first_meeting(node)) {
         std::cout << node->get_name() << 
@@ -62,3 +63,25 @@ void Print::exec(BaseNode* node, int level) {
         std::cout << v->get_name() << "->" << node->get_name() << "\n"; 
     }
 }
+
+#define EXEC_INT_FUNCRION(type) void Print::exec(Int##type##Node* u, int l) { exec(static_cast<Node*>(u), l); } 
+
+EXEC_INT_FUNCRION(Abs);
+EXEC_INT_FUNCRION(Add);
+EXEC_INT_FUNCRION(ArgMin);
+EXEC_INT_FUNCRION(Div);
+EXEC_INT_FUNCRION(Exp);
+EXEC_INT_FUNCRION(FloorDiv);
+EXEC_INT_FUNCRION(Less);
+EXEC_INT_FUNCRION(Mul);
+//EXEC_INT_FUNCRION(RealDiv);
+EXEC_INT_FUNCRION(Sigmoid);
+EXEC_INT_FUNCRION(Sqrt);
+EXEC_INT_FUNCRION(Square);
+EXEC_INT_FUNCRION(Sub);
+//EXEC_INT_FUNCRION(Sum);
+//EXEC_INT_FUNCRION(Conv2D);
+EXEC_INT_FUNCRION(ExpandDims);
+EXEC_INT_FUNCRION(MatMul);
+EXEC_INT_FUNCRION(ReShape);
+EXEC_INT_FUNCRION(Tensordot);

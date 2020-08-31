@@ -2,72 +2,60 @@
 #include <vector>
 #include <cstdint>
 #include <functional>
-
+#include <memory>
 #include "data_structure/shape.hpp"
-union ReturnType {
-    bool bool_;
-    int int32_;
-    float float32_;
-};
-
+#include "error/assert.hpp"
+template<typename T>
 class FlatData {
 private:
-    std::vector<bool> bool_data_;
-    std::vector<std::int8_t> int8_data_;
-    std::vector<std::int16_t> int16_data_;
-    std::vector<std::int32_t> int32_data_;
-    std::vector<std::int64_t> int64_data_;
-    std::vector<float> float32_data_;
-    std::vector<double> float64_data_;
+    std::vector<T> data_;
     std::string type_;
     size_t size_;
-
 public:
-    FlatData() : type_("unknow"), size_(0) {}
-
-    FlatData(std::int32_t &int32_data) : type_("int32"), size_(1) ,int32_data_(1, int32_data) {}
-    FlatData(std::int32_t &int32_data, int size_) : type_("int32"), size_(size_) ,int32_data_(size_, int32_data) {}
-
-    FlatData(std::vector<bool> &bool_data) : type_("bool"), bool_data_(bool_data) {}
-    FlatData(std::vector<std::int8_t> &int8_data) : type_("int8"), int8_data_(int8_data) {}
-    FlatData(std::vector<std::int16_t> &int16_data) : type_("int16"), int16_data_(int16_data) {}
-    FlatData(std::vector<std::int32_t> &int32_data) : type_("int32"), int32_data_(int32_data) {}
-    FlatData(std::vector<std::int64_t> &int64_data) : type_("int64"), int64_data_(int64_data) {}
-
-    FlatData(std::vector<float> &float32_data) : type_("float32"), float32_data_(float32_data) {}
-    FlatData(std::vector<double> &float64_data) : type_("float64"), float64_data_(float64_data) {}
-
-    ReturnType get_index(int i) {
-        ReturnType re;
-        if(type_ == "bool") re.bool_ = bool_data_[i];
-        if(type_ == "int32")re.int32_ = int32_data_[i];
-        if(type_ == "float32")re.int32_ = float32_data_[i];
-        return re;
-    }
+    FlatData() : size_(0) {}
+    FlatData(const int &size) : size_(size) ,data_(size) {}
+    FlatData(const int &size, const T &value) : size_(size) ,data_(size, value) {}
+    FlatData(const std::vector<T> &data) : size_(data.size()), data_(data) {}
+    FlatData(const FlatData<T> &data) : size_(data.size_), data_(data.data_) {}
+    T get_index(int i) { return data_[i];}
     size_t get_size() { return size_; }
+    std::vector<T> &get_data() {return data_;}
 };
 
+template<typename T>
 class NDArray {
 private:
     Shape shape_;
-    FlatData* data_;
+    std::shared_ptr<FlatData<T>> data_;
     size_t begin_;
     size_t memory_size_;
 public:
-    NDArray() : shape_(), data_(new FlatData()), memory_size_(0), begin_(0) {} 
+    NDArray() : shape_(), 
+        data_(std::shared_ptr<FlatData<T>>(new FlatData<T>())), 
+        memory_size_(0), begin_(0) {} 
     
-    NDArray(std::int32_t value) : shape_(1), data_(new FlatData(value)), memory_size_(1), begin_(0) {}
+    NDArray(const T &value) : shape_(1), 
+        data_(std::shared_ptr<FlatData<T>>(new FlatData<T>(1, value))), 
+        memory_size_(1), begin_(0) {}
     
-    NDArray(Shape shape) : shape_(shape), memory_size_(shape.get_shape_size()), begin_(0) {}
+    NDArray(const Shape &shape) : shape_(shape), 
+        data_(std::shared_ptr<FlatData<T>>(new FlatData<T>(shape.get_shape_size()))), 
+        memory_size_(shape.get_shape_size()), begin_(0) {}
+
+    NDArray(const Shape &shape, const T &value) : shape_(shape), 
+        data_(std::shared_ptr<FlatData<T>>(new FlatData<T>(shape.get_shape_size(), value))), 
+        memory_size_(shape.get_shape_size()), begin_(0) {}
     
-    NDArray(const NDArray &b) : shape_(b.shape_), data_(b.data_), memory_size_(b.memory_size_), begin_(b.begin_) {}
+    NDArray(const NDArray<T> &b) : shape_(b.shape_), 
+        data_(std::shared_ptr<FlatData<T>>(new FlatData<T>(b.data_->get_data()))), 
+        memory_size_(b.memory_size_), begin_(b.begin_) {}
     
-    NDArray(Shape &shape, FlatData* data, size_t begin, size_t memory_size) :
+    NDArray(const Shape &shape, std::shared_ptr<FlatData<T>> &data, size_t begin, size_t memory_size) :
         shape_(shape), data_(data), begin_(begin), memory_size_(memory_size) {}
 
     Shape get_shape() const { return shape_; }
     
-    void operator =(const NDArray &b) {
+    void operator=(const NDArray<T> &b) {
         data_ = b.data_;
         shape_ = b.shape_;
         begin_ = b.begin_;
@@ -75,63 +63,57 @@ public:
     }
     
     bool reshape(Shape shape) {
+        std::shared_ptr<FlatData<T>> c_data(new FlatData<T>(std::vector<T>(shape.get_shape_size())));
         shape_ = shape;
+        data_ = c_data;
+        memory_size_ = shape.get_shape_size();
+        begin_ = 0;
         return true;
     }
     
-    NDArray operator[](int index) {
+    NDArray<T> operator[](int index) {
         if(shape_.get_dimensions() == 1) {
-            return data_->get_index(begin + index);
+            return data_->get_index(begin_ + index);
         }
         int dim = shape_.get_outer_dimension();
         int block_size = memory_size_ / dim;
         Shape shape = shape_.get_inner_shape();
-        return NDArray(shape, data_, begin_ + block_size * index, block_size);
+        return NDArray<T>(shape, data_, begin_ + block_size * index, block_size);
     }
 
-    template<class T1, class T2, class T3>
-    NDArray element_wist_op(NDArray &b, std::function<T3 (T2, T1)> op) {
+    template<class T2, class T3>
+    NDArray<T3> element_wist_op(NDArray<T2> &b, std::function<T3 (T, T2)> op) {
         assert_msg(get_shape() == b.get_shape(), "element wist op on ndarry must be same shape(border casted)");
-        FlatData* c_data = new FlatData(std::vector<T3>(memory_size_));
+        std::shared_ptr<FlatData<T3>> c_data(new FlatData<T3>(std::vector<T3>(memory_size_)));
         Shape c_shape = b.get_shape();
         for(int i = 0; i < memory_size_; ++i) {
-            ReturnType x = data_->get_index(i + begin_);
-            ReturnType y = b.data_->get_index(b.begin_+i);
-            if(typeid(bool) == T1) {
-                c_data[i] = op(x.bool_, y.bool_);
-            }
-            if(typeid(int) == T1) {
-                c_data[i] = op(x.int32_, y.int32_);
-            }
-            if(typeid(float) == T1) {
-                c_data[i] = op(x.float32_, y.float32_);
-            }
+            T x = data_->get_index(i + begin_);
+            T2 y = b.data_->get_index(b.begin_+i);
+            c_data[i] = op(x, y);
         }
-        return NDArray(c_shape, c_data, 0, memory_size_);
+        return NDArray<T3>(c_shape, c_data, 0, memory_size_);
     }
 
-    template<class T1, class T2>
-    NDArray unary_op(std::function<T3 (T1)> op) {
-        FlatData* c_data = new FlatData(std::vector<T2>(memory_size_));
+    template<class T2>
+    NDArray<T2> unary_op(std::function<T2 (T)> op) {
+        std::shared_ptr<FlatData<T2>> c_data(new FlatData<T2>(std::vector<T2>(memory_size_)));
         Shape c_shape = get_shape();
         for(int i = 0; i < memory_size_; ++i) {
-            ReturnType x = data_->get_index(i + begin_);
-            if(typeid(bool) == T1) {
-                c_data[i] = op(x.bool_);
-            }
-            if(typeid(int) == T1) {
-                c_data[i] = op(x.int32_);
-            }
-            if(typeid(float) == T1) {
-                c_data[i] = op(x.float32_);
-            }
+            T x = data_->get_index(i + begin_);
+            c_data[i] = op(x);
         }
-        return NDArray(c_shape, c_data, 0, memory_size_);
+        return NDArray<T2>(c_shape, c_data, 0, memory_size_);
     }
 
-    template<class T1>
-    NDArray transpose() {
+    NDArray<T> transpose() {
         assert_msg(shape_.get_shape_size() == 2, "transpose should apply to matrix(TODO)");
-        FlatData* c_data = new FlatData(std::vector<T3>(memory_size_));
+        std::shared_ptr<FlatData<T>> c_data(new FlatData<T>(std::vector<T>(memory_size_)));
+        for(int i = 0; i < shape_.get_ith_dimension(0); ++i) {
+            for(int j = 0; i < shape_.get_ith_dimension(1); ++i) {
+                c_data[i * shape_.get_ith_dimension(0) + j] = data_[begin_ + j * shape_.get_ith_dimension(1) + i];
+            }
+        }
+        Shape c_shape(shape_.get_ith_dimension(1),shape_.get_ith_dimension(0));
+        return NDArray<T>(c_shape, c_data, 0, memory_size_);
     }
 };

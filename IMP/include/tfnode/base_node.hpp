@@ -11,68 +11,39 @@
 
 class DFG;
 
-class Tensor {
+class Node {
 private:
-    std::string name_;
-    std::string dtype_;
-    NDArray ndarray_;
     DFG* dfg_;
+    std::string node_class_;
+    std::string name_;
+    std::vector<Node*> successors_;
+    std::vector<Node*> predecessors_;
 public:
-    Tensor() : ndarray_(), name_("unknow"), dtype_("unknow") {}
-    
-    Tensor(std::string name) :  ndarray_(), name_(name), dtype_("unknow") {}
-    Tensor(std::string name, std::string dtype) :  ndarray_(), name_(name), dtype_(dtype) {}
+    Node() {}
+    Node(const std::string &name, std::string node_class) : name_(name), node_class_(node_class) {}
+    Node(const std::string &name, std::string node_class, DFG* dfg) : name_(name), node_class_(node_class), dfg_(dfg) {}
+    std::vector<Node*>& get_predecessors() { return predecessors_; }
+    std::vector<Node*>& get_successors() { return successors_; }
 
-    Tensor(std::string name, Shape shape) : name_(name), dtype_("unknow"), ndarray_(shape) {}
-    Tensor(std::string name, Shape shape, std::string dtype) : name_(name), dtype_(dtype), ndarray_(shape) {}
+    std::vector<Node*>::iterator predecessors_begin() { return predecessors_.begin(); }
+    std::vector<Node*>::iterator predecessors_end() { return predecessors_.end(); }
+    std::vector<Node*>::iterator successors_begin() { return successors_.begin(); }
+    std::vector<Node*>::iterator successors_end() { return successors_.end(); }
+
+    void add_successor(Node* node) { assert_msg(node!=this, "self cycle occur"); successors_.push_back(node); }
+    void add_predecessors(Node* node) { assert_msg(node!=this, "self cycle occur"); predecessors_.push_back(node); }
+
+
+    std::string get_class() { return node_class_; } 
     
-    Tensor(NDArray ndarray, std::string name, Shape shape, std::string dtype) : ndarray_(ndarray), name_(name), dtype_(dtype) {
-        ndarray_.reshape(shape);
-    }
+    std::string get_name() { return name_; } 
+
     void set_dfg(DFG* dfg) { dfg_ = dfg; }
-    void set_values(NDArray value) { ndarray_ = value; }
-
     DFG* get_dfg() const { return dfg_; }
-    std::string get_name() const { return name_; }
-    std::string get_dtype() const { return dtype_; }
-    NDArray& get_values() { return ndarray_; }
-    Shape get_shape() const { return ndarray_.get_shape(); }
-    void reshape(Tensor* y) { ndarray_.reshape(y->get_shape()); }
-    void redtype(Tensor* y) { dtype_ = y->dtype_; }
-    // bool dtype_check(Tensor& t) const { return dtype_ == t.dtype_; }
-    // bool shape_equal(Tensor& t) const { return dtype_ == t.dtype_; }
 
-};
 
-class BaseNode : public Tensor {
-private:
-    std::string type_;
 
-    std::vector<BaseNode*> successors_;
-    std::vector<BaseNode*> predecessors_;
-public:
-    BaseNode() : Tensor() {}
-    BaseNode(std::string name) : Tensor(name), type_("unknow") {}
-    BaseNode(std::string name, std::string type) : Tensor(name), type_(type) {}
-    BaseNode(std::string name, std::string dtype, std::string type) : Tensor(name, dtype), type_(type) {}
-    BaseNode(std::string name, Shape shape, std::string dtype, std::string type) : 
-        Tensor(name, shape, dtype), type_(type) {}
-
-    BaseNode(NDArray &values, std::string name, Shape shape, std::string dtype, std::string type) : 
-        Tensor(values, name, shape, dtype), type_(type) {}
-
-    std::vector<BaseNode*>& get_predecessors() { return predecessors_; }
-    std::vector<BaseNode*>& get_successors() { return successors_; }
-
-    std::vector<BaseNode*>::iterator predecessors_begin() { return predecessors_.begin(); }
-    std::vector<BaseNode*>::iterator predecessors_end() { return predecessors_.end(); }
-    std::vector<BaseNode*>::iterator successors_begin() { return successors_.begin(); }
-    std::vector<BaseNode*>::iterator successors_end() { return successors_.end(); }
-
-    void add_successor(BaseNode* node) { assert_msg(node!=this, "self cycle occur"); successors_.push_back(node); }
-    void add_predecessors(BaseNode* node) { assert_msg(node!=this, "self cycle occur"); predecessors_.push_back(node); }
-
-    void delete_successor(BaseNode* node) { 
+    void delete_successor(Node* node) { 
         for(auto iter = successors_.begin(); iter != successors_.end(); ++iter) {
             if(*iter == node) {
                 successors_.erase(iter);
@@ -80,8 +51,7 @@ public:
             }
         }
     }
-    
-    void delete_predecessors(BaseNode* node) { 
+    void delete_predecessors(Node* node) { 
         for(auto iter = predecessors_.begin(); iter != predecessors_.end(); ++iter) {
             if(*iter == node) {
                 predecessors_.erase(iter);
@@ -90,16 +60,62 @@ public:
         }
     }
 
-    std::string get_class() { return type_; } 
+    // virtual void print(int l) {
+    //     std::string node_class = get_class();
+    //     if(first_meeting(node)) {
+    //         std::cout << get_name() << 
+    //             " [style=filled, fillcolor=\"" << color_config[node_class] << "\", label=\"" \
+    //             << get_name() + "\\n" + get_class().substr(0, get_class().size() - 4) << "\"];\n";
+    //             //shape=" << shape_config[node_class] << ", 
+    //     }
+    //     for(auto v : node->get_predecessors()) {
+    //         std::cout << v->get_name() << "->" << node->get_name() << "\n"; 
+    //     }
+    // }
 };
 
-class SourcesNode : public BaseNode  {
+template<typename T>
+class Tensor {
+private:
+    std::string tensor_name_;
+    NDArray<T> ndarray_;
 public:
-    SourcesNode() : BaseNode("sources", Shape(), "", "SourcesNode") {}
+    Tensor() : ndarray_(), tensor_name_("unknow") {}
+    
+    Tensor(const std::string &name) :  ndarray_(), tensor_name_(name) {}
+    Tensor(const std::string &name, const Shape &shape) : tensor_name_(name), ndarray_(shape) {}
+    Tensor(const NDArray<T> &ndarray, const std::string &name, const Shape &shape) 
+        : ndarray_(ndarray), tensor_name_(name) {
+        ndarray_.reshape(shape);
+    }
+    void set_values(NDArray<T> value) { ndarray_ = value; }
+    NDArray<T>& get_values() { return ndarray_; }
+
+    std::string get_tensor_name() const { return tensor_name_; }
+    Shape get_shape() const { return ndarray_.get_shape(); }
+
+    void reshape(Tensor<T>* y) { ndarray_.reshape(y->get_shape()); }
+};
+
+template<typename T>
+class TensorNode : public Tensor<T>, public Node {
+public:
+    TensorNode() : Tensor<T>(), Node() {}
+    TensorNode(const std::string &name) : Tensor<T>(name), Node(name, "TensorNode") {}
+    TensorNode(const std::string &name, const std::string &type) : Tensor<T>(name), Node(name, type) {}
+    TensorNode(const std::string &name, const Shape &shape, const std::string &type) : 
+        Tensor<T>(name, shape), Node(name, type) {}
+    TensorNode(const NDArray<T> &values, const std::string &name, const Shape &shape, const std::string &type) : 
+        Tensor<T>(values, name, shape), Node(name, type) {}
+};
+
+class SourcesNode : public Node  {
+public:
+    SourcesNode() : Node("SourcesNode_1", "SourcesNode") {}
 };
 
 
-class SinkNode : public BaseNode {
+class SinkNode : public Node {
 public:
-    SinkNode() : BaseNode("sink", Shape(), "", "SinkNode") {}
+    SinkNode() : Node("SinkNode_1", "SinkNode") {}
 };

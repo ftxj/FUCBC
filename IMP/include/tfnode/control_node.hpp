@@ -15,20 +15,20 @@
 // class Stack;
 // class NoOp;
 
-// class AssignNode : public BaseNode {
+// class AssignNode : public TensorNode {
 
 // };
 
-// class AssignAddNode : public BaseNode {
+// class AssignAddNode : public TensorNode {
 
 // };
 
 
-// class GatherNode : public BaseNode {
+// class GatherNode : public TensorNode {
 
 // };
 
-// class IdentityNode : public BaseNode {
+// class IdentityNode : public TensorNode {
 
 // };
 

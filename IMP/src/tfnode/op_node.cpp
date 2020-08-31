@@ -1,10 +1,26 @@
 #include "tfnode/op_node.hpp"
 
+const std::map<std::string, int> BasicOp::op_code_map = {
+        {"Abs", 1},         {"Add", 2},     {"ArgMin", 3},
+        {"Div", 4},         {"Exp", 5},     {"FloorDiv",6},
+        {"Less", 7},        {"Mul", 8},     {"RealDiv", 9},
+        {"Sigmoid", 10},    {"Sqrt", 11},   {"Square", 12},
+        {"Sub", 13},        {"Sum", 14},    {"Conv2D", 15},
+        {"ExpandDims", 16}, {"MatMul", 17}, {"Reshape", 18},
+        {"Tensordot", 19}
+};
+
+int generate_counter() {
+        static int name_counter = 0;
+        name_counter ++;
+        return name_counter;
+}
+
 // void AbsNode::print() {
 
 // }
 
-// AddNode operator+(BaseNode& x, BaseNode& y) {
+// AddNode operator+(TensorNode& x, TensorNode& y) {
 //     return 
 // }
 
@@ -12,8 +28,8 @@
 //     assert(x.dtype_check(y));
 //     assert(x.shape_equal(y));
 
-//      BaseNode* a = static_cast< BaseNode*>(&x);
-//      BaseNode* b = static_cast< BaseNode*>(&y);
+//      TensorNode* a = static_cast< TensorNode*>(&x);
+//      TensorNode* b = static_cast< TensorNode*>(&y);
 //     //if(a != nullptr && b != nullptr) {
 //         AddNode* node = new AddNode(a, b, "", a->get_shape(), a->get_dtype());
 //         a->add_predecessors(node);

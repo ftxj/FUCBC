@@ -4,44 +4,52 @@
 #include "tfnode/base_node.hpp"
 #include "tfnode/op_node.hpp"
 
+
+// class Abs;
+// class Add;
+// class ArgMin;
+// class Div;
+// class Exp;
+// class FloorDiv;
+// class Less;
+// class Mul;
+// class RealDiv;
+// class Sigmoid;
+// class Sqrt;
+// class Square;
+// class Sub;
+// class Sum;
+// class Conv2D;
+// class ExpandDims;
+// class MatMul;
+// class Reshape;
+// class Tensordot;
+
 class Pass {
+
 public:
+    #define PURE_VIRTUAL_EXEC_INT(type) virtual void exec(Int##type##Node*, int) = 0; 
     virtual void handle_header() = 0;
-    virtual void exec(BaseNode*, int) = 0;
-    virtual void exec(ConstantNode*, int) = 0;
-    virtual void exec(PlaceholderNode*, int) = 0;
-    virtual void exec(VariableNode*, int) = 0;
-    
-    virtual void exec(AddNode*, int) = 0;
-    virtual void exec(TransposeNode*, int) = 0;
-    virtual void exec(AbsNode*, int) = 0;
-    virtual void exec(ArgMinNode*, int) = 0;
-    virtual void exec(DivNode*, int) = 0;
-    virtual void exec(ExpNode*, int) = 0;
-    virtual void exec(FloorDivNode*, int) = 0;
-    virtual void exec(LessNode*, int) = 0;
-    virtual void exec(MulNode*, int) = 0;
-    virtual void exec(SigmoidNode*, int) = 0;
-    virtual void exec(SqrtNode*, int) = 0;
-    virtual void exec(SquareNode*, int) = 0;
-    virtual void exec(SubNode*, int) = 0;
-    virtual void exec(ExpandDimsNode*, int) = 0;
-    virtual void exec(MatMulNode*, int) = 0;
-    virtual void exec(TensordotNode*, int) = 0;
 
-    //virtual void exec(ReshapeNode*, int) = 0;
-    //virtual void exec(Conv2DNode*, int) = 0;
-    //virtual void exec(RealDivNode*, int) = 0;
-    //virtual void exec(SumNode*, int) = 0;
-    
-    // void exec(AssignNode*, int) = 0;
-    // void exec(AssignAddNode*, int) = 0;
-    // void exec(GatherNode*, int) = 0;
-    // void exec(IdentityNode*, int) = 0;
-    // void exec(PackNode*, int) = 0;
-    // void exec(SelectNode*, int) = 0;
-    // void exec(StackNode*, int) = 0;
-    // void exec(NoOpNode*, int) = 0;
-
+    virtual void exec(Node*, int) = 0;
+    PURE_VIRTUAL_EXEC_INT(Abs);
+    PURE_VIRTUAL_EXEC_INT(Add);
+    PURE_VIRTUAL_EXEC_INT(ArgMin);
+    PURE_VIRTUAL_EXEC_INT(Div);
+    PURE_VIRTUAL_EXEC_INT(Exp);
+    PURE_VIRTUAL_EXEC_INT(FloorDiv);
+    PURE_VIRTUAL_EXEC_INT(Less);
+    PURE_VIRTUAL_EXEC_INT(Mul);
+    //PURE_VIRTUAL_EXEC_INT(RealDiv);
+    PURE_VIRTUAL_EXEC_INT(Sigmoid);
+    PURE_VIRTUAL_EXEC_INT(Sqrt);
+    PURE_VIRTUAL_EXEC_INT(Square);
+    PURE_VIRTUAL_EXEC_INT(Sub);
+    //PURE_VIRTUAL_EXEC_INT(Sum);
+    //PURE_VIRTUAL_EXEC_INT(Conv2D);
+    PURE_VIRTUAL_EXEC_INT(ExpandDims);
+    PURE_VIRTUAL_EXEC_INT(MatMul);
+    PURE_VIRTUAL_EXEC_INT(ReShape);
+    PURE_VIRTUAL_EXEC_INT(Tensordot);
     virtual void handle_tail() = 0;
 };
