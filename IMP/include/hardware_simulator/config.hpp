@@ -1,4 +1,25 @@
 #include <cmath>
+
+
+
+class Digital_t {
+public:
+    int len_;
+    Digital_t operator +(const Digital_t &);
+    int to_int();
+};
+
+Digital_t operator <<(const Digital_t &, int);
+Digital_t operator >>(const Digital_t &, int);
+
+class Analog_t {
+public:
+    Analog_t operator * (double frac);
+    Analog_t operator - (Analog_t&);
+    int operator / (Analog_t&);
+};
+
+
 class Config {
     int adc_resolution_needed(int rows, int input_per_cycle, int cell_bit) {
         // from ISAAC
