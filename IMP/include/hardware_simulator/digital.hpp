@@ -5,6 +5,7 @@
 #include <cmath>
 #include "hardware_simulator/config.hpp"
 #include "hardware_simulator/isa.hpp"
+#include "util.hpp"
 
 class DAC {
     int num_access_;
@@ -19,17 +20,18 @@ class DAC {
         return analog_max_ * frac;
     }
 public:
-    DAC() : latency_(1), resolution_(2) { DAC::component_number_++; }
-    DAC(Config);
+    DAC() : latency_(1), resolution_(2) {}
+    DAC(Config) {}
     
     int get_latency() { return latency_; }
     int get_resolution() { return resolution_; }
 
     Analog_t power_on(Digital_t &inp) {
         num_access_ += 1;
+        assert_msg(inp.len_ == resolution_, "dac input error!!");
         return digital_to_analog(inp);
     }
-    static int component_number_;
+    // /static int component_number_;
 };
 
 class DACArray {
@@ -63,10 +65,13 @@ class ADC {
     Analog_t step_degree_;
     // TODO
     Digital_t analog_to_digital(Analog_t &inp) {
-        return Digital_t((inp - input_min_) / step_degree_);
+        Analog_t diff = inp - input_min_;
+        Analog_t max_diff = input_max_ - input_min_;
+        int stage = (diff * double(std::pow(2, resolution_))) / max_diff;
+        return Digital_t(stage, resolution_);
     }
 public:
-    ADC() : latency_(50), resolution_(5) {} // TODO
+    ADC() : latency_(50), resolution_(5),  input_min_(-10e-10), input_max_(1) {} // TODO
     ADC(Config);
 
     int get_latency() { return latency_; }
@@ -88,10 +93,13 @@ public:
     int get_latency() { return latency_; }
 
     std::vector<Digital_t> power_on(std::vector<Digital_t> &inp) {
+        auto all = packer(inp);
+        assert_msg(all.len_ == bit_width_, "simple & hold length error!!");
         num_access_ += 1;
         value_ = inp;
         return value;
     }
+    
     Digital_t get_latch(int index) { return value_[index]; }
 };
 
@@ -101,15 +109,16 @@ class ShiftAdd {
     int bit_width_;
     int shift_bit_;
 public:
-    ShiftAdd() : bit_width_(2), latency_(1), shift_bit_(2) {} // TODO
+    ShiftAdd() : latency_(1), shift_bit_(2), bit_width_(32) {} // TODO
     ShiftAdd(Config);
 
     int get_latency() { return latency_; }
 
     Digital_t power_on(Digital_t &inp1, Digital_t &inp2) {
+        num_access_++;
         assert_msg(inp1.len_ > bit_width_, "shift&add outof bound");
         assert_msg(inp2.len_ > bit_width_, "shift&add outof bound");
-        return inp1 + (inp2 << shift_bit_);
+        return Digital_t(inp1 + (inp2 << shift_bit_))
     }
 };
 
@@ -118,13 +127,71 @@ class Reg {
 };
 
 class InputReg {
-
+    std::vector<Digital_t> regs_;
+    int bit_;
+    int round_;
+    int num_access_;
 public:
-    std::vector<Digital_t> read_round_n(int bits, std::vector<bool> &mask);
+    InputReg(int rows, int bit) : regs_(rows), bit_(bit) {
+        assert_msg(bit <= 32, "just support 32 bits");
+    }
+    std::vector<Digital_t> read_round_n(int bits, std::vector<bool> &mask) {
+        num_access_++;
+        std::vector<Digital_t> res(regs_.size());
+        assert_msg(mask.size() == regs_.size(), "mask error");
+        for(auto i : range(0, res.size())) {
+            res[i] = mask[i]? regs_[i].split(round_ * bits, bits) : Digital_t(0, bits);
+        }
+        round = (round + 1) % (bit_ / bits);
+        return res;
+    }
+};
+
+
+class OutputReg {
+    std::vector<Digital_t> regs_;
+    int bit_;
+    int num_access_;
+public:
+    OutputReg(int solt, int bit) : regs_(solt), bit_(bit) {
+        assert_msg(bit <= 32, "just support 32 bits");
+    }
+    void write(std::vector<Digital_t> &data) {
+        assert_msg(data.size() == regs_.size(), "write width isn't same!!!");
+        assert_msg(data[0].len_ <= bit_ "write width isn't g!!!");
+        for(auto i : range(0, res.size())) {
+            res[i] = data[i];
+        }
+    }
+
+    void write(Digital_t &d, int solt) {
+        regs_[solt] = d;
+    }
+
+    Digital_t read(int solt) {
+        return regs_[solt];
+    }
 };
 
 class RegFile {
+    std::vector<Digital_t> regs_;
+    int bit_;
+    int num_access_;
+public:
+    RegFile(int size, int bit) : regs_(size), bit_(bit) {
+        assert_msg(bit <= 32, "just support 32 bits");
+    }
 
+    void write(int addr, Digital_t d) {
+        assert_msg(d.len_ <= bit_, "reg file write outof bound");
+        assert_msg(addr <= regs_.size(), "reg file write outof bound");
+        regs_[addr] = d;
+    }
+    
+    Digital_t read(int addr) {
+        assert_msg(addr <= regs_.size(), "reg file write outof bound");
+        return regs_[addr];
+    }
 };
 
 class LUT {
@@ -166,6 +233,10 @@ public:
     void power_on(GlobalAddress, GlobalAddress);
 };
 
+class SharedBus {
+
+};
+
 class HTree {
 
 };
@@ -179,9 +250,10 @@ public:
     InstrBuffer() : latency_(1), size_(512),  buf_(512, Instruction()) {} // TODO
     InstrBuffer(Config);
     
-    void load();
-
-    void write();
+    Instruction get(int pc) {
+        assert_msg(pc <= size_, "Instr buf outof bound");
+        return buf_[pc];
+    }
 
     int get_latency() { return latency_; }
 };

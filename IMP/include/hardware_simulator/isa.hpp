@@ -9,7 +9,15 @@ class LocalAddress {
 public:
     bool on_reg;// 7bit, 128 * (128*2/8byte)
     bool on_cb; // 7bit, 128
-    int address; 
+    int address;
+};
+
+
+class TileAddress {
+public:
+    bool on_reg;// 7bit, 128 * (128*2/8byte)
+    bool on_cb; // 7bit, 128
+    int address;
 };
 
 class GlobalAddress {
@@ -29,7 +37,7 @@ public:
         SHIFT_L,
         SHIFT_R,
         MASK,
-
+        HALT,
         MOV,
         MOVS,
         MOVI,
@@ -37,12 +45,14 @@ public:
         LUT,
         REDUCE_SUM
     };
-    static int cycle[40];
+    std::string name;
     int op_code_;
     int cycles_;
     LocalAddress src1_;
     LocalAddress src2_;
     LocalAddress dst_;
+
+    std::vector<bool> pe_mask_;
     std::vector<bool> reg_mask_;
     std::vector<bool> row_mask_;
     std::vector<bool> col_mask_;
