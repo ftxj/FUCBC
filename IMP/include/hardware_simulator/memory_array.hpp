@@ -3,7 +3,8 @@
 #include<vector>
 #include<map>
 #include<set>
-
+#include "error/assert.hpp"
+#include "hardware_simulator/digital.hpp"
 
 // class DAC {
 // private:
@@ -37,14 +38,66 @@ private:
     size_t col_size;
     size_t row_size;
     size_t cell_bits_;
+
     size_t data_bits_;
+    
+    int num_access_;
+    int num_access_rd_;
+    int num_access_wr_;
+    int latency_ip_;
+    int latency_op_;
+    int latency_rd_;
+    int latency_wr_;
+
 
 public:
+
+    int get_input_lat() {
+        return latency_ip_;
+    }
+
+    int get_output_lat() {
+        return latency_op_;
+    }
+
+    int get_read_lat() {
+        return latency_rd_;
+    }
+
+    int get_write_lat() {
+        return latency_wr_;
+    }
 
     std::vector<int> read_row(int row) {
         return matrix_t_[row];
     }
 
+    void write(int col, int row, float value) {
+        assert_msg(col < col_size, "col index outof bound");
+        assert_msg(row < row_size, "row index outof bound");
+        matrix_[row][col] = value;
+        num_access_wr_ += 1;
+    }
+
+    float read(int col, int row) {
+        assert_msg(col < col_size, "col index outof bound");
+        assert_msg(row < row_size, "row index outof bound");
+        num_access_rd_ += 1;
+        return matrix_[row][col] ;
+    }
+
+    std::vector<float> dot(std::vector<float> &in) {
+        num_access_ += 1;
+        std::vector<float> res(col_size, 0);
+        for(size_t i = 0; i < col_size; ++i) {
+            for(size_t j = 0; j < row_size; ++j) {
+                res[i] += matrix_[i][j] * in[j];
+            }
+        }
+        return res;
+    }
+
+    
     std::vector<int> read_from_address(LocalAddress &src) {
         return matrix_t_[row];
     }
@@ -59,75 +112,23 @@ public:
         }
         return res;
     }
-
-    std::vector<int> dot(std::vector<int> &in, std::vector<bool> &mask) {
-        std::vector<int> res(col_size, 0);
-        for(size_t i = 0; i < col_size; ++i) {
-            if(mask[i] == true) {
-                for(size_t j = 0; j < row_size; ++j) {
-                    res[i] += matrix_[i][j] * in[j];
-                }
-            }
-        }
-        return shift_add(res);
-    }
-
-    std::vector<int> exec_mul(std::vector<int> &in1, std::vector<bool> &mask) {
-        std::vector<int> res(col_size, 0);
-        for(size_t i = 0; i < col_size; ++i) {
-            for(size_t j = 0; j < row_size; ++j) {
-                if(mask[j] == true) {
-                    res[i] == matrix_[i][j] * in[j];
-                }
-            }
-        }
-        return shift_add(res);
-    }
-
-    std::vector<int> exec_sum(std::vector<bool> &mask) {
-        std::vector<int> cb_input(row_size, 0);
-        for(size_t i = 0; i < mask.size(); ++i) {
-            if(mask[i]) {
-                cb_input[i] = 1;
-            }
-            else {
-                cb_input[i] = 0;
-            }
-        }
-        std::vector<int> res = dot(cb_input, std::vector<bool>(col_size_, true));
-        return res;
-    }
+};
 
 
-    std::vector<int> exec_sub(std::vector<bool> &mask1, std::vector<bool> &mask2) {
-        std::vector<int> cb_input(row_size, 0);
-        for(size_t i = 0; i < mask.size(); ++i) {
-            if(mask1[i]) {
-                cb_input[i] = 1;
-            }
-            else if(mask2[i]) {
-                cb_input[i] = -1;
-            }
-            else {
-                cb_input[i] = 0;
-            }
-        }
-        std::vector<int> res = dot(cb_input, std::vector<bool>(col_size_, true));
-        return res;
-    }
-
-
-    std::vector<int> exec_dot(std::vector<bool> &mask, std::vector<int> &input) {
-        std::vector<int> cb_input(row_size, 0);
-        for(size_t i = 0; i < mask.size(); ++i) {
-            if(mask1[i]) {
-                cb_input[i] = input[i];
-            }
-            else {
-                cb_input[i] = 0;
-            }
-        }
-        std::vector<int> res = dot(cb_input, std::vector<bool>(col_size_, true));
-        return res;
-    }
+class PE {
+    CrossBar cross_bar_;
+    DACArray rows_dac_array_;
+    DACArray cols_dac_array_;
+    SimpleHold sah_;
+    ShiftAdd ssa_;
+    ADC adc1_;
+    ADC adc2_;
+    RegFile pe_output_;
+    RegFile pe_input_;
+public:
+    void exec_sum(std::vector<bool> &mask);
+    void exec_sub(std::vector<bool> &mask1, std::vector<bool> &mask2);
+    void exec_inner_product(std::vector<bool> &mask);
+    void exec_outer_product();
+    void exec_elewist_product(std::vector<bool> &mask);
 };

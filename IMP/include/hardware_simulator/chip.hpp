@@ -1,6 +1,19 @@
 #include "hardware_simulator/tile.hpp"
 #include "hardware_simulator/isa.hpp"
 
+class NoC {
+    int start_cycle_;
+    int num_cycles_intra_;
+public:
+    void start_noc(int cycle) {
+        start_cycle_ = cycle;
+    }
+    void stop_noc(int cycle) {
+        num_cycles_intra_ += cycle - start_cycle_;
+    }
+};
+
+
 class Chip {
 private:
     std::vector<Tile> tiles_;
