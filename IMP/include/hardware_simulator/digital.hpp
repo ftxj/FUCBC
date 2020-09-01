@@ -48,8 +48,9 @@ public:
 
     std::vector<Analog_t> power_on(std::vector<Digital_t> &inp) {
         std::vector<Analog_t> out;
+        assert_msg(inp.size() == size_, "out of bound" + std::to_string(inp.size()));
         for(auto i : range(0, size_)) {
-            out.push_back(digital_to_analog(inp));
+            out.push_back(dac_array_[i].power_on(inp[i]));
         }
         return out;
     }
@@ -84,23 +85,21 @@ public:
 class SimpleHold {
     int num_access_;
     int latency_;
-    int bit_width_;
-    std::vector<Digital_t> value_;
+    std::vector<Analog_t> value_;
 public:
-    SimpleHold() : bit_width_(2), latency_(1), value_(2, Digital_t()) {} // TODO
+    SimpleHold() : latency_(1), value_(2, Analog_t()) {} // TODO
     SimpleHold(Config);
 
     int get_latency() { return latency_; }
 
-    std::vector<Digital_t> power_on(std::vector<Digital_t> &inp) {
-        auto all = packer(inp);
-        assert_msg(all.len_ == bit_width_, "simple & hold length error!!");
+    std::vector<Analog_t> power_on(std::vector<Analog_t> &inp) {
+        assert_msg(inp.size() == value_.size(), "simple & hold length error!!");
         num_access_ += 1;
         value_ = inp;
-        return value;
+        return value_;
     }
     
-    Digital_t get_latch(int index) { return value_[index]; }
+    Analog_t get_latch(int index) { return value_[index]; }
 };
 
 class ShiftAdd {
@@ -118,7 +117,7 @@ public:
         num_access_++;
         assert_msg(inp1.len_ > bit_width_, "shift&add outof bound");
         assert_msg(inp2.len_ > bit_width_, "shift&add outof bound");
-        return Digital_t(inp1 + (inp2 << shift_bit_))
+        return Digital_t(inp1 + (inp2 << shift_bit_));
     }
 };
 
@@ -132,6 +131,7 @@ class InputReg {
     int round_;
     int num_access_;
 public:
+    InputReg() : regs_(128), bit_(32) {}
     InputReg(int rows, int bit) : regs_(rows), bit_(bit) {
         assert_msg(bit <= 32, "just support 32 bits");
     }
@@ -142,10 +142,17 @@ public:
         for(auto i : range(0, res.size())) {
             res[i] = mask[i]? regs_[i].split(round_ * bits, bits) : Digital_t(0, bits);
         }
-        round = (round + 1) % (bit_ / bits);
+        round_ = (round_ + 1) % (bit_ / bits);
         return res;
     }
+    Digital_t &read(int pos) {
+        return regs_[pos];
+    }
+    void write(int pos,  Digital_t &d) {
+        regs_[pos] = d;
+    }
 };
+
 
 
 class OutputReg {
@@ -153,22 +160,23 @@ class OutputReg {
     int bit_;
     int num_access_;
 public:
+    OutputReg() : regs_(8), bit_(32) {}
     OutputReg(int solt, int bit) : regs_(solt), bit_(bit) {
         assert_msg(bit <= 32, "just support 32 bits");
     }
     void write(std::vector<Digital_t> &data) {
         assert_msg(data.size() == regs_.size(), "write width isn't same!!!");
-        assert_msg(data[0].len_ <= bit_ "write width isn't g!!!");
-        for(auto i : range(0, res.size())) {
-            res[i] = data[i];
+        assert_msg(data[0].len_ <= bit_, "write width isn't g!!!");
+        for(auto i : range(0, regs_.size())) {
+            regs_[i] = data[i];
         }
     }
 
-    void write(Digital_t &d, int solt) {
+    void write(int solt, Digital_t &d) {
         regs_[solt] = d;
     }
 
-    Digital_t read(int solt) {
+    Digital_t& read(int solt) {
         return regs_[solt];
     }
 };
@@ -178,6 +186,7 @@ class RegFile {
     int bit_;
     int num_access_;
 public:
+    RegFile() : regs_(512), bit_(32) {}
     RegFile(int size, int bit) : regs_(size), bit_(bit) {
         assert_msg(bit <= 32, "just support 32 bits");
     }
@@ -255,6 +264,12 @@ public:
         return buf_[pc];
     }
 
+    void add(Instruction &inst) {
+        buf_[inc] = inst;
+        inc++;
+    }
+
     int get_latency() { return latency_; }
+    int inc;
 };
 

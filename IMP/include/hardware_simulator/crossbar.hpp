@@ -6,17 +6,10 @@
 #include "error/assert.hpp"
 #include "hardware_simulator/digital.hpp"
 
-class Conductance_t {
-public:
-    operator Analog_t(); // TODO
-    void operator= (Analog_t);
-    operator= (Conductance_t);
-};
-
 class CrossBar {
 private:
-    std::vector<std::vector<Conductance_t>> matrix_;
-    std::vector<std::vector<Conductance_t>> matrix_t_;
+    std::vector<std::vector<Analog_t>> matrix_;
+    std::vector<std::vector<Analog_t>> matrix_t_;
 
     size_t col_size;
     size_t row_size;
@@ -32,7 +25,7 @@ private:
     int latency_rd_;
     int latency_wr_;
 public:
-    CrossBar();
+    CrossBar() : col_size(128), row_size(128), cell_bits_(2), data_bits_(32) {}
     CrossBar(size_t size);
     CrossBar(Config);
     
@@ -47,6 +40,13 @@ public:
         assert_msg(col < col_size, "col index outof bound");
         assert_msg(row < row_size, "row index outof bound");
         matrix_[row][col] = value;
+        num_access_wr_ += 1;
+    }
+
+    void write_row(int row, std::vector<Analog_t> value) {
+        //assert_msg(col < col_size, "col index outof bound");
+        assert_msg(row < row_size, "row index outof bound");
+        matrix_[row] = value;
         num_access_wr_ += 1;
     }
 

@@ -1,3 +1,4 @@
+#pragma once
 #include <cmath>
 #include <vector>
 #include "util.hpp"
@@ -26,11 +27,11 @@ public:
     void pack(Digital_t &inp) {
         data_ += inp.data_ << len_;
         len_ += inp.len_;
-        assert_msg(len_ < 32, "digital signal to int out of bound");
+        assert_msg(len_ <= 32, "digital signal to int out of bound");
     }
 
     Digital_t split(int begin_, int bits_) {
-        return Digital_t((data_ >> begin_) % (std::pow(2, bits_)), bits_);
+        return Digital_t((data_ >> begin_) % int(std::pow(2, bits_)), bits_);
     }
 
     int to_int() {
@@ -46,7 +47,7 @@ Digital_t packer(std::vector<Digital_t> &inp) {
     for(auto i : range(0, inp.size())) {
         res.pack(inp[i]);
     }
-    assert_msg(res.len_ < 32, "digital signal to int out of bound");
+    assert_msg(res.len_ <= 32, "digital signal to int out of bound");
     return res;
 }
 
@@ -75,11 +76,20 @@ public:
     Analog_t operator * (double frac) {
         return Analog_t(frac * data_);
     }
+
+    Analog_t operator * (Analog_t frac) {
+        return Analog_t(frac.data_ * data_);
+    }
+
     Analog_t operator - (const Analog_t &inp) {
         return Analog_t(data_ - inp.data_);
     }
+
+    Analog_t operator += (const Analog_t &inp) {
+        return Analog_t(data_ + inp.data_);
+    }
     int operator / (const Analog_t& inp) {
-        return int(data_ / inp);
+        return int(data_ / inp.data_);
     }
 };
 

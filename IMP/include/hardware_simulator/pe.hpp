@@ -27,29 +27,44 @@ private:
 
     bool locked_;
 public:
-    std::vector<Digital_t> read_input(int );
-    std::vector<Digital_t> read_output(int );
-    std::vector<Digital_t> read_crossbar(int row);
-    std::vector<Digital_t> read_crossbar(int row, int column);
+    Digital_t read_input(int pos) {
+        return pe_input_.read(pos);
+    }
     
-    bool is_lock();
-    void lock();
-    void unlock();
+    Digital_t read_output(int pos) {
+        return pe_output_.read(pos);
+    }
 
-    void write_input(int , std::vector<Digital_t>) {
-        assert_msg(!locked_, "pe locked, but run write");
+    std::vector<Digital_t> read_crossbar(int row) {
+        auto row_data = cross_bar_.read_row(row);
+        std::vector<Digital_t> res;
+        for(auto i : range(0, row_data.size())) {
+            res.push_back(adc1_.power_on(row_data[i]));
+        }
+        return res;
     }
-    void write_output(int, std::vector<Digital_t>) {
-        assert_msg(!locked_, "pe locked, but run write");
+    Digital_t read_crossbar(int row, int column) {
+        auto row_data = cross_bar_.read_row(row);
+        return adc1_.power_on(row_data[column]);
     }
-    void write_crossbar(int row, std::vector<Digital_t>) {
-        assert_msg(!locked_, "pe locked, but run write");
-        locked_ = true;
+    
+    void write_input(int pos, Digital_t &d) {
+        pe_input_.write(pos, d);
     }
-    void write_crossbar(int row, int column, std::vector<Digital_t>) {
-        assert_msg(!locked_, "pe locked, but run write");
-        locked_ = true;
+    void write_output(int pos, Digital_t &d) {
+        pe_input_.write(pos, d);
     }
+    void write_crossbar(int row, std::vector<Digital_t> &d) {
+        ftxj_debug_print("real write 2");
+        
+        auto wd = cols_dac_array_.power_on(d);
+        ftxj_debug_print("real write 2");
+        cross_bar_.write_row(row, wd);
+    }
+
+    // void write_crossbar(int row, int column, Digital_t &d) {
+    //     cross_bar_.write(col, row, d);
+    // }
 
     // void exec_sum(std::vector<bool> &mask);
     // void exec_sub(std::vector<bool> &mask1, std::vector<bool> &mask2);
@@ -75,7 +90,7 @@ public:
             }
             for(auto solt : range(0, simd_solt_)) {
                 auto tmp = ssa_.power_on(pe_output_.read(solt), saa[solt]);
-                pe_output_.write(tmp, solt);
+                pe_output_.write(solt, tmp);
             }
         }
     }
