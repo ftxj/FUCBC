@@ -20,7 +20,17 @@ class DAC {
         return analog_max_ * frac;
     }
 public:
-    DAC() : latency_(1), resolution_(2) {}
+    /*
+        11   0.9    00          01          10          11
+
+                    0           0.9         1.8         2.7
+                    -10e-10                             0.0078
+                    0           3           6           9
+        0.6
+        0.3
+        0.0
+    */
+    DAC() : latency_(1), resolution_(2), digital_max_(Digital_t(3, 2)), analog_max_(Analog_t(0.9)) {}
     DAC(Config) {}
     
     int get_latency() { return latency_; }
@@ -28,7 +38,7 @@ public:
 
     Analog_t power_on(Digital_t &inp) {
         num_access_ += 1;
-        assert_msg(inp.len_ == resolution_, "dac input error!!");
+        assert_msg(inp.len_ == resolution_, inp.len_ << "!=" << resolution_ << "," << inp.to_int() << ", dac input error!!");
         return digital_to_analog(inp);
     }
     // /static int component_number_;
@@ -40,7 +50,7 @@ class DACArray {
     int resolution_;
     std::vector<DAC> dac_array_;
 public:
-    DACArray() : size_(128), latency_(1), dac_array_(128, DAC()) {}
+    DACArray() : resolution_(2), size_(128), latency_(1), dac_array_(128, DAC()) {}
     DACArray(Config);
     
     int get_latency() { return latency_; }
@@ -72,7 +82,7 @@ class ADC {
         return Digital_t(stage, resolution_);
     }
 public:
-    ADC() : latency_(50), resolution_(5),  input_min_(-10e-10), input_max_(1) {} // TODO
+    ADC() : latency_(50), resolution_(5),  input_min_(0), input_max_(346) {} // TODO
     ADC(Config);
 
     int get_latency() { return latency_; }
@@ -87,7 +97,7 @@ class SimpleHold {
     int latency_;
     std::vector<Analog_t> value_;
 public:
-    SimpleHold() : latency_(1), value_(2, Analog_t()) {} // TODO
+    SimpleHold() : latency_(1), value_(128, Analog_t()) {} // TODO
     SimpleHold(Config);
 
     int get_latency() { return latency_; }
@@ -108,15 +118,16 @@ class ShiftAdd {
     int bit_width_;
     int shift_bit_;
 public:
-    ShiftAdd() : latency_(1), shift_bit_(2), bit_width_(32) {} // TODO
+    ShiftAdd() : latency_(1), shift_bit_(2), bit_width_(64) {} // TODO
     ShiftAdd(Config);
 
     int get_latency() { return latency_; }
 
-    Digital_t power_on(Digital_t &inp1, Digital_t &inp2) {
+    Digital_t power_on(Digital_t &inp1, Digital_t &inp2, size_t shift_bit_) {
         num_access_++;
-        assert_msg(inp1.len_ > bit_width_, "shift&add outof bound");
-        assert_msg(inp2.len_ > bit_width_, "shift&add outof bound");
+        //std::cout << inp1.len_ << "," << inp2.len_ << std::endl;
+        assert_msg(inp1.len_ <= bit_width_, "shift&add outof bound" << inp1.len_);
+        assert_msg(inp2.len_ <= bit_width_, "shift&add outof bound" << inp2.len_);
         return Digital_t(inp1 + (inp2 << shift_bit_));
     }
 };
@@ -150,6 +161,12 @@ public:
     }
     void write(int pos,  Digital_t &d) {
         regs_[pos] = d;
+    }
+    void print() {
+        for(auto d : regs_) {
+            d.print();
+            std::cout << "\n";
+        }
     }
 };
 
@@ -273,3 +290,33 @@ public:
     int inc;
 };
 
+
+class PrefixSum {
+public:
+    std::vector<Digital_t> power_on(std::vector<Digital_t> &inp) {
+        std::vector<Digital_t> res(inp.size());
+        Digital_t tmp;
+        for(auto x : range(0, inp.size())) {
+            res[x] = tmp + inp[x];
+            tmp = res[x];
+        }
+        return res;
+    }
+};
+
+class CMP {
+public:
+    std::vector<Digital_t> power_on(std::vector<Digital_t> &inp) {
+        std::vector<Digital_t> res(inp.size());
+        Digital_t tmp;
+        for(auto x : range(0, inp.size())) {
+            res[x] = tmp + inp[x];
+            tmp = res[x];
+        }
+        return res;
+    }
+};
+
+class Mask {
+
+};

@@ -41,6 +41,9 @@ public:
     DFG* get_dfg() {return dfg_;}
     void set_dfg(DFG* dfg) {dfg_ = dfg; }
     template<typename T> AbsNode<T>* abs(Tensor<T> *x, std::string name = "");
+    
+    
+
     template<typename T> ArgMinNode<T>* argmin(Tensor<T> *x, int axis, std::string output_type="int64", std::string name = "");
     template<typename T> ExpNode<T>* exp(Tensor<T> *x, std::string name = "");
     template<typename T> ExpandDimsNode<T>* expand_dims(Tensor<T> *x, int axis, std::string name = "");
@@ -48,7 +51,8 @@ public:
     template<typename T> SigmoidNode<T>* sigmod(Tensor<T> *x, std::string name = "");
     template<typename T> SqrtNode<T>* sqrt(Tensor<T> *x, std::string name = "");
     template<typename T> SquareNode<T>* square(Tensor<T> *x, std::string name = "");
-
+    
+    
     template<typename T> AddNode<T>* add(Tensor<T> *x, Tensor<T> *y, std::string name = "");
     
     template<typename T> MatMulNode<T>* matmul(Tensor<T> *a, Tensor<T> *b, 
@@ -63,6 +67,16 @@ public:
     template<typename T> LessNode<T>* less(Tensor<T> *x, Tensor<T> *y, std::string name = "");
     template<typename T> MulNode<T>* multiply(Tensor<T> *x, Tensor<T> *y, std::string name = "");
     template<typename T> SubNode<T>* subtract(Tensor<T> *x, Tensor<T> *y, std::string name = "");
+
+
+    template<typename T> AbsNode<T>* reduce_sum(Tensor<T> *x, int axis, std::string name = "");
+    template<typename T> TransposeNode<T>* transpose(Tensor<T> *x, std::string name = "");
+    template<typename T> TensorNode<T>* unsorted_segment_sum(Tensor<T> *x, Tensor<T> *seg, int num_segmemt, std::string name ="");
+    template<typename T> TensorNode<T>* reduce_any(Tensor<T>* input_tensor, int axis, bool keepdims, std::string name = "");
+    template<typename T> TensorNode<T>* not_equal(Tensor<T>* x, Tensor<T>* y, std::string name = "");
+    template<typename T> TensorNode<T>* negative(Tensor<T>* x, int axis, std::string name = "");
+    template<typename T> TensorNode<T>* top_k(Tensor<T>* x, int k, bool sorted, std::string name = "");
+
 };
 
 class TensorFlow {
@@ -75,6 +89,11 @@ public:
     template<typename T> ConstantNode<T>* constant(const NDArray<T> &value, Shape shape = Shape(), std::string name = "Const");    
     template<typename T> PlaceholderNode<T>* placeholder(Shape shape = Shape(), std::string name = "");    
     template<typename T> VariableNode<T>* Variable(const NDArray<T> &value, Shape shape = Shape(), std::string name = "");    
+    template<typename T> ConstantNode<T>* ones(Shape shape = Shape(), std::string name = "");    
+    template<typename T> ConstantNode<T>* zeros(Shape shape = Shape(), std::string name = "");    
+    
+    template<typename T> Tensor<T>* read_dataset(std::string filename, bool one_hot);    
+    
     void run();
 };
 

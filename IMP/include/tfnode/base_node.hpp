@@ -95,6 +95,8 @@ public:
     Shape get_shape() const { return ndarray_.get_shape(); }
 
     void reshape(Tensor<T>* y) { ndarray_.reshape(y->get_shape()); }
+
+    void append(Tensor<T> *y);
 };
 
 template<typename T>

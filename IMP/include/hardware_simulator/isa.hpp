@@ -43,7 +43,8 @@ public:
         MOVI,
         MOVG,
         LUT,
-        REDUCE_SUM
+        REDUCE_SUM,
+        NOP
     };
     std::string name;
     int op_code_;
@@ -91,6 +92,8 @@ public:
         dst_.address = dst;
 
         col_mask_ = mask;
+        
+
         name = "MOV";
         cycles_ = 3;
     } 
@@ -100,9 +103,28 @@ class DOT : public Instruction {
 public:
     DOT(std::vector<bool> &mask1, std::vector<bool> &mask2) :Instruction() {
         op_code_ = Instruction::DOT;
-        row_mask_ = mask1;
-        pe_mask_ = mask2;
+        row_mask_ = mask2;
+        pe_mask_ = mask1;
         name = "DOT";
         cycles_ = 18;
+    } 
+};
+
+
+class NOP : public Instruction {
+public:
+    NOP() :Instruction() {
+        op_code_ = Instruction::NOP;
+        name = "NOP";
+        cycles_ = 1;
+    } 
+};
+
+class HALT : public Instruction {
+public:
+    HALT() :Instruction() {
+        op_code_ = Instruction::HALT;
+        name = "HALT";
+        cycles_ = 1;
     } 
 };

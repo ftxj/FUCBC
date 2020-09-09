@@ -20,14 +20,14 @@ public:
     }
     
     Digital_t operator +(const Digital_t & inp) {
-        int len = len_ > inp.len_? len_+1 : inp.len_ + 1;
-        return Digital_t(len, inp.data_ + data_);
+        int len = len_ > inp.len_? len_ : inp.len_;
+        return Digital_t(inp.data_ + data_, len);
     }
 
     void pack(Digital_t &inp) {
         data_ += inp.data_ << len_;
         len_ += inp.len_;
-        assert_msg(len_ <= 32, "digital signal to int out of bound");
+        assert_msg(len_ <= 64, "digital signal to int out of bound");
     }
 
     Digital_t split(int begin_, int bits_) {
@@ -35,8 +35,11 @@ public:
     }
 
     int to_int() {
-        assert_msg(len_ < 32, "digital signal to int out of bound");
         return data_;
+    }
+
+    void print() {
+        std::cout << data_ << "(" << len_ << ")";
     }
     friend Digital_t operator <<(const Digital_t &inp, int bit);
     friend Digital_t operator >>(const Digital_t &inp, int bit);
@@ -69,6 +72,9 @@ public:
 
     Analog_t(const Analog_t &d) : data_(d.data_) {} 
 
+    void print() {
+        std::cout << data_;
+    }
     void operator =(const Analog_t & inp) {
         data_ = inp.data_;
     }
