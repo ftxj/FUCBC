@@ -14,7 +14,6 @@ using namespace std;
 
 TEST_CASE("Inner Compute are compute") {
     CrossBar cb;
-
     SECTION("write and read function test") {
         for(int mnum = 1; mnum <= 128; ++mnum) {
             std::vector<std::vector<float>> matrix(mnum, std::vector<float>(128));
