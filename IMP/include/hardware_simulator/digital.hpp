@@ -7,6 +7,15 @@
 #include "hardware_simulator/isa.hpp"
 #include "util.hpp"
 
+
+
+class Reg {
+public:
+    int data_;
+
+};
+
+
 class DAC {
     int num_access_;
     int latency_;
@@ -114,27 +123,33 @@ public:
 
 class ShiftAdd {
     int num_access_;
+    
     int latency_;
-    int bit_width_;
-    int shift_bit_;
+    
+    size_t add_width_;
+
+    Digital_t reg_;
+
 public:
-    ShiftAdd() : latency_(1), shift_bit_(2), bit_width_(64) {} // TODO
+    ShiftAdd() : latency_(1), add_width_(64) {} // TODO
     ShiftAdd(Config);
 
     int get_latency() { return latency_; }
 
-    Digital_t power_on(Digital_t &inp1, Digital_t &inp2, size_t shift_bit_) {
+    Digital_t power_on(Digital_t &inp1, size_t shift_bit_) {
         num_access_++;
-        //std::cout << inp1.len_ << "," << inp2.len_ << std::endl;
-        assert_msg(inp1.len_ <= bit_width_, "shift&add outof bound" << inp1.len_);
-        assert_msg(inp2.len_ <= bit_width_, "shift&add outof bound" << inp2.len_);
-        return Digital_t(inp1 + (inp2 << shift_bit_));
+        reg_ = reg_ + (inp1 << shift_bit_);
+        assert_msg(reg_.len_ <= add_width_, 
+            "shift&add need result <=" << add_width_ <<
+            ", but given " << reg_.len_);
+        return reg_;
+    }
+
+    Digital_t get_data() {
+        return reg_;
     }
 };
 
-class Reg {
-
-};
 
 class InputReg {
     std::vector<Digital_t> regs_;
@@ -162,10 +177,12 @@ public:
     void write(int pos,  Digital_t &d) {
         regs_[pos] = d;
     }
-    void print() {
-        for(auto d : regs_) {
-            d.print();
-            std::cout << "\n";
+    
+    void dump(std::ostream &out) {
+        for(auto index : range(0, regs_.size())) {
+            if(regs_[index].to_int() != 0) {
+                out << "[" << index << "," << regs_[index].to_int() << "]\n";
+            }
         }
     }
 };
@@ -195,6 +212,14 @@ public:
 
     Digital_t& read(int solt) {
         return regs_[solt];
+    }
+
+    void dump(std::ostream &out) {
+        for(auto index : range(0, regs_.size())) {
+            if(regs_[index].to_int() != 0) {
+                out << "[" << index << "," << regs_[index].to_int() << "]\n";
+            }
+        }
     }
 };
 
@@ -292,9 +317,18 @@ public:
 
 
 class PrefixSum {
+    size_t num_access_;
+    size_t latency_;
+    size_t width_;
 public:
-    std::vector<Digital_t> power_on(std::vector<Digital_t> &inp) {
-        std::vector<Digital_t> res(inp.size());
+    PrefixSum() : latency_(1), width_(128) {}
+    PrefixSum(Config);
+    DigitalBundle power_on(DigitalBundle &inp) {
+        assert_msg(inp.size() == width_, 
+            "PerfixSum must given " << width_ << 
+            "values, but given " <<
+            inp.size());
+        DigitalBundle res(inp.size());
         Digital_t tmp;
         for(auto x : range(0, inp.size())) {
             res[x] = tmp + inp[x];

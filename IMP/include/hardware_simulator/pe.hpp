@@ -13,15 +13,16 @@ class WordLineVectorGenerator {
     
     size_t ou_rows_;
 public:
-    std::vector<Digital_t> power_on(std::vector<Digital_t> &inp, size_t cycle) {
-        std::vector<Digital_t> prefix_sum_res = prefix_sum_.power_on(inp);
-        std::vector<Digital_t> res(inp.size());
+    DigitalBundle power_on(DigitalBundle &inp, size_t cycle) {
+        DigitalBundle prefix_sum_res = prefix_sum_.power_on(inp);
+        DigitalBundle res(inp.size());
         for(auto i : range(0, res.size())) {
             bool condition_1 = prefix_sum_res[i] >= (cycle - 1) * ou_rows_ + 1;
             bool condition_2 = prefix_sum_res[i] < cycle * ou_rows_ + 1;
-            rez[i] =  condition_1 & condition_2 & inp[i];
+            res[i] =  condition_1 & condition_2 & inp[i];
         }
-    };
+        return res;
+    }
 };
 
 class IndexDecoder {
@@ -35,7 +36,7 @@ private:
 public:
     Digital_t power_on(size_t ou_index) {
         return prefix_sum_decode(input_index_[ou_index]);
-    };
+    }
 };
 
 
@@ -45,7 +46,9 @@ private:
     DACArray rows_dac_array_;
     DACArray cols_dac_array_;
     SimpleHold sah_;
-    ShiftAdd saa_;
+
+    std::vector<ShiftAdd> saa_;
+    
     ADC adc1_;
     ADC adc2_;
     InputReg pe_input_;
@@ -56,12 +59,23 @@ private:
 
     int cross_bar_cols_;
     int cross_bar_rows_;
-    int bit_per_cell_;
-    int simd_solt_;
+    int cross_bar_cell_bits_;
+
+    size_t store_num_bits_;
+
+    size_t ou_cols_;
+    size_t ou_rows_;
+
+    size_t dac_res_;
+
 
 public:
 
-    PE() : simd_solt_(8), cross_bar_rows_(128), cross_bar_cols_(128), bit_per_cell_(2)  {}
+    PE() : 
+        cross_bar_rows_(128), cross_bar_cols_(128), cross_bar_cell_bits_(2),
+        store_num_bits_(16),
+        ou_cols_(8), ou_rows_(8),
+        dac_res(1)  {}
     Digital_t read_input(int pos) {
         return pe_input_.read(pos);
     }
@@ -78,6 +92,7 @@ public:
         }
         return res;
     }
+
     Digital_t read_crossbar(int row, int column) {
         auto row_data = cross_bar_.read_row(row);
         return adc1_.power_on(row_data[column]);
@@ -90,17 +105,21 @@ public:
     void write_output(int pos, Digital_t &d) {
         pe_input_.write(pos, d);
     }
-    void write_crossbar(int row, std::vector<Digital_t> &d) {
-        
-        auto wd = cols_dac_array_.power_on(d);
-        for(auto i : wd) {
-            i.print();
-            std::cout << " ";
-        }
-        std::cout << "\n";
-        cross_bar_.write_row(row, wd);
 
-        cross_bar_.print();
+    void write_crossbar_dummy(int row, DigitalBundle &d) {
+        assert_msg(d.size() == cross_bar_cols_, 
+            "write to crossbar row must be " + std::to_string(cross_bar_cols_) + 
+            "values, but give " + std::to_string(d.size()) + 
+            "values, check your write instruction");
+        assert_msg(d.signal_len_ == cross_bar_cell_bits_,
+            "write to crossbar must be " + std::to_string(d.signal_len_) + 
+            "bits, but give " + std::to_string(d.signal_len_) + 
+            "bits, check your write instruction");
+        std::vector<Analog_t> wd;
+        for(auto x : d) {
+
+        }
+        cross_bar_.write_row_dummy(row,  wd);
     }
 
     // void write_crossbar(int row, int column, Digital_t &d) {
@@ -110,55 +129,33 @@ public:
     // void exec_sum(std::vector<bool> &mask);
     // void exec_sub(std::vector<bool> &mask1, std::vector<bool> &mask2);
 
-
-
     void exec_inner_product(std::vector<bool> &mask, int mul_bit = 16) {
         int round = mul_bit / rows_dac_array_.get_resolution();
         for(auto i : range(0, round)) {
-            for(auto ou_col_index : range(0, cross_bar_cols_ / ou_size_cols_)) { 
-                
+            for(auto ou_col_index : range(0, cross_bar_cols_ / ou_cols_)) { 
                 auto absolute_address = index_decoder_.power_on(ou_col_index);
-                
                 auto activation_value = pe_input_.read(absolute_address);
-                
-                for(auto ou_row_index : range(0, ou_size_rows_)) {
-                
+                for(auto ou_row_index : range(0, ou_rows_)) {
                     auto activation_vector = word_line_gen_.power_on(activation_value, ou_row_index);
-
                     auto dac_out = rows_dac_array_.power_on(activation_vector);
-                    
-                    auto cb_out = cross_bar_.dot(dac_out, col_ou_index);
-                    
+                    auto cb_out = cross_bar_.dot(dac_out, ou_col_index);
                     auto sah_out = sah_.power_on(cb_out);
-                    
-                    std::vector<Digital_t> adc_out;
-                    for(auto col_index : range(0, ou_size_cols_)) {
-                        adc_out.push_back(adc1_.power_on(sah_out[col_index]));
-                        saa_[col_index] = saa_.power_on(adc_out[col_index], saa[col_index], 0);
+                    for(auto col_index : range(ou_col_index * ou_cols_, ou_col_index * ou_cols_ + ou_cols_)) {
+                        auto adc_out = adc1_.power_on(sah_out[col_index]));
+                        saa_[col_index].power_on(adc_out, i * dac_res_);
                     }
                 }
             }
-            auto reg = pe_input_.read_round_n(rows_dac_array_.get_resolution(), mask);
-            auto cb = cross_bar_.dot(dac);
-            auto sah = sah_.power_on(cb);
-            std::vector<Digital_t> adc;
-            std::vector<Digital_t> saa(simd_solt_);
-            for(auto i : range(0, cross_bar_cols_)) {
-                if(i % 2 == 1) {
-                    adc.push_back(adc1_.power_on(sah[i]));
-                }
-                else {
-                    adc.push_back(adc2_.power_on(sah[i]));
-                }
-                saa[i / (mul_bit/bit_per_cell_)] = saa_.power_on(adc[i], saa[i / (mul_bit/bit_per_cell_)]);
-                //std::cout << saa[i / (mul_bit/bit_per_cell_)].len_ << std::endl; 
-            }
-            for(auto solt : range(0, simd_solt_)) {
-                auto tmp = saa_.power_on(pe_output_.read(solt), saa[solt]);
-                pe_output_.write(solt, tmp);
-            }
         }
-
+        size_t number_of_packaged_result = (cross_bar_cols_ * cross_bar_cell_bits_) / store_num_bits_; 
+        size_t number_of_cols_per_result = store_num_bits_ / cross_bar_cell_bits_;
+        for(auto out_solt : range(0, number_of_packaged_result) {
+            size_t elected_ssa_index = out_solt * number_of_cols_per_result;
+            for(auto index : range(1,  number_of_cols_per_result + 1)) {
+                saa_[elected_ssa_index].power_on(saa_[elected_ssa_index + index].get_data(), cross_bar_cell_bits_ * index);
+            }
+            pe_output_.write(out_solt, saa_[elected_ssa_index].get_data());
+        }
     }
 
     // void exec_outer_product();
