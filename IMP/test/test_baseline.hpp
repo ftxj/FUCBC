@@ -14,15 +14,24 @@ std::vector<T> baseline_dot(std::vector<std::vector<T>> &matrix, std::vector<T> 
 }
 
 void fill_int_vector_with_random_number(std::vector<int> &vec, int max) {
-    auto gen = [](){
+    auto gen = [&max](){
         return static_cast <int> (rand()) / (static_cast <int> (RAND_MAX/max));
     };
     std::generate(std::begin(vec), std::end(vec), gen);
 }
 
 
+void fill_int_vector_with_random_number(std::vector<int>::iterator &begin, std::vector<int>::iterator &end, int max) {
+    auto gen = [&max](){
+        return static_cast <int> (rand()) / (static_cast <int> (RAND_MAX/max));
+    };
+    std::generate(begin, end, gen);
+}
+
+
+
 void fill_vector_with_random_number(std::vector<float> &vec, float max) {
-    auto gen = [](){
+    auto gen = [&max](){
         return static_cast <float> (rand()) / (static_cast <float> (RAND_MAX/max));
     };
     std::generate(std::begin(vec), std::end(vec), gen);

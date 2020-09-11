@@ -1,5 +1,5 @@
 CXX=g++
-CXXFLAGS=-std=c++11 -rdynamic -O0 -g
+CXXFLAGS=-std=c++11 -rdynamic -O0 -g -Wfatal-errors
 LD_FLAGS=
 INCLUDE=-I../include -I./catch/
 
