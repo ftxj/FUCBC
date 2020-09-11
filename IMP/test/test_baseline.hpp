@@ -1,7 +1,7 @@
 #include <vector>
 #include "error/assert.hpp"
-template<typename T>
-std::vector<T> baseline_dot(std::vector<std::vector<T>> &matrix, std::vector<T> &inp) {
+template<typename T, typename T2>
+std::vector<T> baseline_dot(std::vector<std::vector<T2>> &matrix, std::vector<T> &inp) {
     assert_msg(matrix.size() > 0, "wuwwu ");
     assert_msg(matrix.size() <= inp.size(), "wuwwu ");
     std::vector<T> res(matrix[0].size());
