@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+# C++ test framework
+catch.hpp
+

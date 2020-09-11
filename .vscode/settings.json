@@ -52,6 +52,12 @@
         "typeindex": "cpp",
         "typeinfo": "cpp",
         "set": "cpp",
-        "string": "cpp"
+        "string": "cpp",
+        "condition_variable": "cpp",
+        "optional": "cpp",
+        "string_view": "cpp",
+        "future": "cpp",
+        "mutex": "cpp",
+        "regex": "cpp"
     }
 }

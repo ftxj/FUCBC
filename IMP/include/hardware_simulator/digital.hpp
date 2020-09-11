@@ -5,16 +5,8 @@
 #include <cmath>
 #include "hardware_simulator/config.hpp"
 #include "hardware_simulator/isa.hpp"
+#include "hardware_simulator/hardware_type.hpp"
 #include "util.hpp"
-
-
-
-class Reg {
-public:
-    int data_;
-
-};
-
 
 class DAC {
     int num_access_;
@@ -29,18 +21,14 @@ class DAC {
         return analog_max_ * frac;
     }
 public:
-    /*
-        11   0.9    00          01          10          11
-
-                    0           0.9         1.8         2.7
-                    -10e-10                             0.0078
-                    0           3           6           9
-        0.6
-        0.3
-        0.0
-    */
     DAC() : latency_(1), resolution_(2), digital_max_(Digital_t(3, 2)), analog_max_(Analog_t(0.9)) {}
-    DAC(Config) {}
+    
+    DAC(Config &c) {
+        latency_ = c.dac_latency_;
+        resolution_ = c.dac_resolution_;
+        digital_max_ = c.dac_digital_max_;
+        analog_max_ = c.dac_analog_max_;
+    }
     
     int get_latency() { return latency_; }
     int get_resolution() { return resolution_; }
@@ -50,8 +38,14 @@ public:
         assert_msg(inp.len_ == resolution_, inp.len_ << "!=" << resolution_ << "," << inp.to_int() << ", dac input error!!");
         return digital_to_analog(inp);
     }
-    // /static int component_number_;
+
+    Analog_t power_on_dummy(Digital_t &inp) {
+        num_access_ += 1;
+        assert_msg(inp.len_ == resolution_, inp.len_ << "!=" << resolution_ << "," << inp.to_int() << ", dac input error!!");
+        return Analog_t(static_cast<float>(inp.to_int()));
+    }
 };
+
 
 class DACArray {
     int size_;
@@ -60,16 +54,29 @@ class DACArray {
     std::vector<DAC> dac_array_;
 public:
     DACArray() : resolution_(2), size_(128), latency_(1), dac_array_(128, DAC()) {}
-    DACArray(Config);
+    DACArray(Config &c) : dac_array_(c.crossbar_rows_, DAC(c)){
+        size_ = c.crossbar_rows_;
+        resolution_ = c.dac_resolution_;
+        latency_ = c.dac_latency_;
+    }
     
     int get_latency() { return latency_; }
     int get_resolution() { return resolution_; }
 
-    std::vector<Analog_t> power_on(std::vector<Digital_t> &inp) {
-        std::vector<Analog_t> out;
+    AnalogBundle power_on(DigitalBundle &inp) {
+        AnalogBundle out(inp.size());
         assert_msg(inp.size() == size_, "out of bound" + std::to_string(inp.size()));
         for(auto i : range(0, size_)) {
-            out.push_back(dac_array_[i].power_on(inp[i]));
+            out[i]  = dac_array_[i].power_on(inp[i]);
+        }
+        return out;
+    }
+
+    AnalogBundle power_on_dummy(DigitalBundle &inp) {
+        AnalogBundle out(inp.size());
+        assert_msg(inp.size() == size_, "out of bound" + std::to_string(inp.size()));
+        for(auto i : range(0, size_)) {
+            out[i]  = dac_array_[i].power_on_dummy(inp[i]);
         }
         return out;
     }
@@ -82,7 +89,7 @@ class ADC {
 
     Analog_t input_min_;
     Analog_t input_max_;
-    Analog_t step_degree_;
+    //Analog_t step_degree_;
     // TODO
     Digital_t analog_to_digital(Analog_t &inp) {
         Analog_t diff = inp - input_min_;
@@ -92,47 +99,64 @@ class ADC {
     }
 public:
     ADC() : latency_(50), resolution_(5),  input_min_(0), input_max_(346) {} // TODO
-    ADC(Config);
+    ADC(Config &c) {
+        latency_ = c.adc_latency_;
+        resolution_ = c.adc_resolution_;
+        input_min_ = c.adc_input_min_;
+        input_max_ = c.adc_input_max_;
+    }
 
     int get_latency() { return latency_; }
 
     Digital_t power_on(Analog_t &inp) {
         return analog_to_digital(inp);
     }
+
+    Digital_t power_on_dummy(Analog_t &inp) {
+        return Digital_t(int(inp.to_float()), resolution_);
+    }
 };
 
 class SimpleHold {
     int num_access_;
     int latency_;
-    std::vector<Analog_t> value_;
+    AnalogBundle value_;
 public:
-    SimpleHold() : latency_(1), value_(128, Analog_t()) {} // TODO
-    SimpleHold(Config);
+    SimpleHold() : latency_(1), value_(128) {} // TODO
+    SimpleHold(Config &c) : value_(c.crossbar_cols_) {
+        latency_ = c.simple_hold_latency_;
+    }
 
     int get_latency() { return latency_; }
 
-    std::vector<Analog_t> power_on(std::vector<Analog_t> &inp) {
+    AnalogBundle power_on(AnalogBundle &inp) {
         assert_msg(inp.size() == value_.size(), "simple & hold length error!!");
         num_access_ += 1;
         value_ = inp;
         return value_;
     }
     
+    AnalogBundle power_on_dummy(AnalogBundle &inp) {
+        assert_msg(inp.size() == value_.size(), "simple & hold length error!!");
+        return inp;
+    }
+
     Analog_t get_latch(int index) { return value_[index]; }
 };
 
+
 class ShiftAdd {
     int num_access_;
-    
     int latency_;
-    
+
     size_t add_width_;
-
     Digital_t reg_;
-
 public:
     ShiftAdd() : latency_(1), add_width_(64) {} // TODO
-    ShiftAdd(Config);
+    ShiftAdd(Config &c) {
+        latency_ = c.shift_add_latency_;
+        add_width_ = c.shift_add_width_;
+    }
 
     int get_latency() { return latency_; }
 
@@ -142,108 +166,163 @@ public:
         assert_msg(reg_.len_ <= add_width_, 
             "shift&add need result <=" << add_width_ <<
             ", but given " << reg_.len_);
+        if(reg_.len_ > 32) reg_.len_ = 32;
         return reg_;
     }
 
-    Digital_t get_data() {
-        return reg_;
-    }
-};
-
-
-class InputReg {
-    std::vector<Digital_t> regs_;
-    int bit_;
-    int round_;
-    int num_access_;
-public:
-    InputReg() : regs_(128), bit_(32) {}
-    InputReg(int rows, int bit) : regs_(rows), bit_(bit) {
-        assert_msg(bit <= 32, "just support 32 bits");
-    }
-    std::vector<Digital_t> read_round_n(int bits, std::vector<bool> &mask) {
+    Digital_t power_on(Digital_t &inp1, Digital_t &inp2, size_t shift_bit_) {
         num_access_++;
-        std::vector<Digital_t> res(regs_.size());
-        assert_msg(mask.size() == regs_.size(), "mask error");
-        for(auto i : range(0, res.size())) {
-            res[i] = mask[i]? regs_[i].split(round_ * bits, bits) : Digital_t(0, bits);
-        }
-        round_ = (round_ + 1) % (bit_ / bits);
-        return res;
+        reg_ = inp1_ + (inp2 << shift_bit_);
+        assert_msg(reg_.len_ <= add_width_, 
+            "shift&add need result <=" << add_width_ <<
+            ", but given " << reg_.len_);
+        if(reg_.len_ > 32) reg_.len_ = 32;
+        return reg_;
     }
-    Digital_t &read(int pos) {
-        return regs_[pos];
-    }
-    void write(int pos,  Digital_t &d) {
-        regs_[pos] = d;
-    }
-    
-    void dump(std::ostream &out) {
-        for(auto index : range(0, regs_.size())) {
-            if(regs_[index].to_int() != 0) {
-                out << "[" << index << "," << regs_[index].to_int() << "]\n";
-            }
-        }
+
+    Digital_t& get_data() {
+        return reg_;
     }
 };
 
-
-
-class OutputReg {
-    std::vector<Digital_t> regs_;
-    int bit_;
-    int num_access_;
-public:
-    OutputReg() : regs_(8), bit_(32) {}
-    OutputReg(int solt, int bit) : regs_(solt), bit_(bit) {
-        assert_msg(bit <= 32, "just support 32 bits");
-    }
-    void write(std::vector<Digital_t> &data) {
-        assert_msg(data.size() == regs_.size(), "write width isn't same!!!");
-        assert_msg(data[0].len_ <= bit_, "write width isn't g!!!");
-        for(auto i : range(0, regs_.size())) {
-            regs_[i] = data[i];
-        }
-    }
-
-    void write(int solt, Digital_t &d) {
-        regs_[solt] = d;
-    }
-
-    Digital_t& read(int solt) {
-        return regs_[solt];
-    }
-
-    void dump(std::ostream &out) {
-        for(auto index : range(0, regs_.size())) {
-            if(regs_[index].to_int() != 0) {
-                out << "[" << index << "," << regs_[index].to_int() << "]\n";
-            }
-        }
-    }
-};
 
 class RegFile {
-    std::vector<Digital_t> regs_;
-    int bit_;
+protected:
+    DigitalBundle regs_;
     int num_access_;
+    int bit_;
 public:
-    RegFile() : regs_(512), bit_(32) {}
-    RegFile(int size, int bit) : regs_(size), bit_(bit) {
+    RegFile() : regs_(512, 32), bit_(32) {}
+    
+    RegFile(int size, int bit) : regs_(size, bit), bit_(bit) {
         assert_msg(bit <= 32, "just support 32 bits");
     }
 
-    void write(int addr, Digital_t d) {
+    void write(int addr, Digital_t &d) {
         assert_msg(d.len_ <= bit_, "reg file write outof bound");
         assert_msg(addr <= regs_.size(), "reg file write outof bound");
         regs_[addr] = d;
     }
+
+    void write(int addr, DigitalBundle &d) {
+        assert_msg(d.signal_len_ <= bit_, "reg file write outof bound");
+        assert_msg(addr + d.size() <= regs_.size(), "reg file write outof bound");
+        for(auto iter : range(addr, addr + d.size())) {
+            regs_[iter] = d[iter - addr];
+        }
+    }
+
+    void load_data(std::vector<int> &data, int len) {
+        //assert_msg(data.size() == num_cb_rows_, " ");
+        DigitalBundle in_d(data.size(), len);
+        for(auto i : range(0, data.size()))
+            in_d[i] = Digital_t(data[i], len);
+        write(0, in_d);
+    }
     
+    DigitalBundle read(int addr, int len) {
+        assert_msg(addr + len <= regs_.size(), "reg file write outof bound");
+        return regs_.split(addr, len);
+    }
+
     Digital_t read(int addr) {
         assert_msg(addr <= regs_.size(), "reg file write outof bound");
         return regs_[addr];
     }
+
+    void dump(std::ostream &out) {
+        for(auto index : range(0, regs_.size())) {
+            if(regs_[index].to_int() != 0) {
+                out << "[" << index << "," << regs_[index].to_int() << "]\n";
+            }
+        }
+    }
+
 };
+
+class InputReg : public RegFile {
+    // TODO, input data orginazation
+    DigitalBundle active_values_;
+    size_t ou_rows_;
+    DigitalBundle read_round_n(int bits, int round, DigitalBundle &inp) {
+        DigitalBundle res(inp.size(), bit_);
+        for(auto i : range(0, res.size())) {
+            res[i] = inp[i].split(round * bits, bits);
+        }
+        return res;
+    }
+public:
+    InputReg() : RegFile() {}
+    InputReg(int rows, int bit) : RegFile(rows, bit) {}
+    InputReg(Config &c) : RegFile(c.input_reg_size_, c.input_reg_data_width_) , 
+        active_values_(c.crossbar_ou_rows_, c.input_reg_data_width_) {}
+
+    DigitalBundle read_rows_data(int bits, int round) {
+        num_access_++;
+        //DigitalBundle ou_rows_data = regs_.split(ou_col_index * ou_rows_, ou_rows_);
+        DigitalBundle res = read_round_n(bits, round, active_values_);
+        return res;
+    }
+
+    void get_active_values(DigitalBundle &addrs) {
+        DigitalBundle res(addrs.size(), bit_);
+        Digital_t addr_pre(10000, bit_);
+        for(auto i : range(0, addrs.size())) {
+            if(addrs[i] != addr_pre) {
+                res[i] = RegFile::read(addrs[i].to_int());
+            }
+            else {
+                res[i] = Digital_t(0, bit_);
+            }
+            addr_pre = addrs[i];
+        }
+        active_values_ = res;
+    }
+
+    size_t get_mul_bit() {
+        return bit_;
+    }
+};
+
+
+class OutputReg : public RegFile {
+public:
+    OutputReg() : RegFile() {}
+    OutputReg(int solt, int bit) : RegFile(solt, bit) {}
+    OutputReg(Config &c) :  RegFile(c.output_reg_size_, c.output_reg_data_width_) {}
+};
+
+
+class PrefixSum {
+    size_t num_access_;
+    size_t latency_;
+    size_t width_;
+public:
+    PrefixSum() : latency_(1), width_(128) {}
+    PrefixSum(Config &c) {
+        latency_ = c.perfix_sum_latency_;
+        width_ = c.crossbar_rows_;
+    }
+
+    DigitalBundle power_on(DigitalBundle &inp) {
+        assert_msg(inp.size() == width_, 
+            "PerfixSum must given " << width_ << 
+            "values, but given " <<
+            inp.size());
+        DigitalBundle res(inp.size(), width_);
+        Digital_t tmp;
+        for(auto x : range(0, inp.size())) {
+            res[x] = tmp + inp[x];
+            tmp = res[x];
+        }
+        return res;
+    }
+
+    DigitalBundle power_on_dummy(DigitalBundle &inp) {
+        return power_on(inp);
+    }
+};
+
 
 class LUT {
     int num_access_;
@@ -316,27 +395,7 @@ public:
 };
 
 
-class PrefixSum {
-    size_t num_access_;
-    size_t latency_;
-    size_t width_;
-public:
-    PrefixSum() : latency_(1), width_(128) {}
-    PrefixSum(Config);
-    DigitalBundle power_on(DigitalBundle &inp) {
-        assert_msg(inp.size() == width_, 
-            "PerfixSum must given " << width_ << 
-            "values, but given " <<
-            inp.size());
-        DigitalBundle res(inp.size());
-        Digital_t tmp;
-        for(auto x : range(0, inp.size())) {
-            res[x] = tmp + inp[x];
-            tmp = res[x];
-        }
-        return res;
-    }
-};
+
 
 class CMP {
 public:

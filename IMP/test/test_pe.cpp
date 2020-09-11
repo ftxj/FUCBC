@@ -185,7 +185,6 @@ TEST_CASE("Inner Product") {
         std::vector<int> ou_row_3_1 {0,0,1,0,1,0,0,0};
         std::vector<int> ou_row_3_2 {0,0,0,0,0,1,1,0};
         std::vector<int> ou_row_3_3 {0,0,0,0,0,0,0,1};
-
         
         std::vector<int> ou_row_4_1 {0,0,1,1,0,0,0,0};
         std::vector<int> ou_row_4_2 {0,0,0,0,1,0,0,1};

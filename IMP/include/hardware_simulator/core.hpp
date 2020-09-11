@@ -9,15 +9,28 @@
 #include "hardware_simulator/digital.hpp"
 #include "error/assert.hpp"
 
-class Core {
-    // SIMD exec model
-    std::vector<PE> pes_;
-    InstrBuffer inst_buf_;
-    RegFile reg_;
-    LUT lut_;
-    SharedBus bus_;
-    size_t dac_resolution_;
 
+// systolic array or SIMD??
+
+
+class SharedBusCore {
+    // SIMD exec model
+    std::vector<PE> pe_array_;
+    std::vector<ShiftAdd> core_saa_;
+    
+    InstrBuffer inst_buf_;
+    
+    RegFile core_buf_;
+    
+    LUT lut_; // or ALU, VFU, which is better?
+    
+    SharedBus bus_;
+    
+    bool halt_;
+    // address :
+    /*
+        pe_input : 0 ~ pe_array_.size * {input_reg_size * (input_reg_bit_/8)}
+    */
     class Lock {
         std::vector<int> locked_;
     public:
@@ -41,9 +54,16 @@ class Core {
     
     size_t row_size_;
     size_t col_size_;
+
+    size_t cross_bar_store_num_bits_;
+
+    size_t dac_resolution_;
     int write_crossbar_cycles;
-    int input_buf_size;
-    int output_buf_size;
+
+    size_t pe_input_reg_size;
+
+    size_t pe_output_reg_size;
+    
     int reg_buf_size;
 
     int ou_size_rows_;
@@ -58,60 +78,63 @@ class Core {
     };
     int begin_clock_;
     
-    std::vector<Digital_t> read_data_from_reg(LocalAddress &src, int len) {
-        std::vector<Digital_t> res(len);
+    DigitalBundle read_data_from_reg(LocalAddress &src, int len) {
+        DigitalBundle res(len, 8);
         int addr = src.address;
-        if(addr < input_buf_size * pes_.size()) {
+        if(addr < pe_input_reg_size * pe_array_.size()) {
             for(auto i : range(addr, addr + len)) {
-                res[i - addr] = pes_[addr / input_buf_size].read_input(i % input_buf_size);
+                res[i - addr] = pe_array_[addr / pe_input_reg_size].read_input_reg(i % pe_input_reg_size);
             }
         }
-        else if(addr < input_buf_size * pes_.size() + output_buf_size * pes_.size()) {
-            addr = addr - input_buf_size * pes_.size();
+        else if(addr < pe_input_reg_size * pe_array_.size() + pe_output_reg_size * pe_array_.size()) {
+            addr = addr - pe_input_reg_size * pe_array_.size();
             for(auto i : range(addr, addr + len)) {
-                res[i - addr] = pes_[addr / output_buf_size].read_input(i % output_buf_size);
+                res[i - addr] = pe_array_[addr / pe_output_reg_size].read_output_reg(i % pe_output_reg_size);
             }
         }
-        else {
-            addr = addr - input_buf_size * pes_.size() - output_buf_size * pes_.size();
+        else { // core buffer 
+            addr = addr - pe_input_reg_size * pe_array_.size() - pe_output_reg_size * pe_array_.size();
             for(auto i : range(addr, addr + len)) {
-                res[i - addr] = reg_.read(i);
+                res[i - addr] = core_buf_.read(i);
             }
         }
         return res;
     }
     
-    std::vector<Digital_t> read_data_from_crossbar(LocalAddress &src, int len, int clock) {
+    DigitalBundle read_data_from_crossbar(LocalAddress &src, int len, int clock) {
+        // crossbar address according row and col;
         int addr = src.address;
         assert_msg(!locks.is_lock(addr / row_size_, clock), "locked when read");
-        std::vector<Digital_t> res;
+        
+        DigitalBundle res(len, cross_bar_store_num_bits_);
+
         for(auto i : range(0, len)) {
-            res.push_back(pes_[addr / row_size_].read_crossbar(addr % row_size_, i));
+            res[i] = pe_array_[addr / row_size_].read_crossbar_dummy(addr % row_size_, i));
         }
         return res;
     }
 
     void write_data_to_reg(LocalAddress &dst, Digital_t data) {
         int addr = dst.address;
-        if(addr < input_buf_size * pes_.size()) {
-            pes_[addr / input_buf_size].write_input(addr % input_buf_size, data);
+        if(addr < pe_input_reg_size * pe_array_.size()) {
+            pe_array_[addr / pe_input_reg_size].write_input_reg(addr % pe_input_reg_size, data);
         }
-        else if(addr < input_buf_size * pes_.size() + output_buf_size * pes_.size()) {
-            addr = addr - input_buf_size * pes_.size();
-            pes_[addr / output_buf_size].write_input(addr % output_buf_size, data);
+        else if(addr < pe_input_reg_size * pe_array_.size() + pe_output_reg_size * pe_array_.size()) {
+            addr = addr - pe_input_reg_size * pe_array_.size();
+            pe_array_[addr / pe_output_reg_size].write_output_reg(addr % pe_output_reg_size, data);
         }
         else {
-            addr = addr - input_buf_size * pes_.size() - output_buf_size * pes_.size();
-            reg_.write(addr, data);
+            addr = addr - pe_input_reg_size * pe_array_.size() - pe_output_reg_size * pe_array_.size();
+            core_buf_.write(addr, data);
         }
     }
 
-    void write_data_to_crossbar(LocalAddress &dst, std::vector<Digital_t> data, std::vector<bool> mask, int clock) {
+    void write_data_to_crossbar(LocalAddress &dst, DigitalBundle &data, std::vector<bool> mask, int clock) {
         int addr = dst.address;
         assert_msg(!locks.is_lock(addr / row_size_, clock), "locked!!");
         locks.lock(addr / row_size_, clock, write_crossbar_cycles);
-        std::vector<Digital_t> wd(col_size_);
-        std::cout << mask.size() << std::endl;
+        
+        DigitalBundle wd(col_size_);
         int j =0;
         int bit_len = col_size_ / mask.size();
         for(int i = 0; i < mask.size(); ++i) {
@@ -127,23 +150,17 @@ class Core {
                 }
             }
         }
-        std::cout << "\n";
-        for(auto i : wd) {
-            i.print();
-            std::cout << " ";
-        }
-        std::cout << "\n";
-        pes_[addr / row_size_].write_crossbar(addr % row_size_, wd);
+        pe_array_[addr / row_size_].write_crossbar(addr % row_size_, wd);
     }
 
-    std::vector<Digital_t> read_data(LocalAddress &src, int len, int clock) {
+    DigitalBundle read_data(LocalAddress &src, int len, int clock) {
         if(src.on_reg) return read_data_from_reg(src, len);
         if(src.on_cb) return read_data_from_crossbar(src, len, clock);
         assert_msg(0, "local address outof bound");
-        return std::vector<Digital_t>();
+        return DigitalBundle();
     }
 
-    void write_data(LocalAddress &dst, std::vector<Digital_t> &data, std::vector<bool> mask, int clock) {
+    void write_data(LocalAddress &dst, DigitalBundle &data, std::vector<bool> mask, int clock) {
         if(dst.on_reg) return write_data_to_reg(dst, data[0]);
         if(dst.on_cb) return write_data_to_crossbar(dst, data, mask, clock);
         assert_msg(0, "local address outof bound");
@@ -157,8 +174,8 @@ class Core {
     }
 public:
 
-    Core() : row_size_(128), col_size_(128), write_crossbar_cycles(5), pes_(8),  dac_resolution_(2),
-            input_buf_size(128 * 32 / 8), output_buf_size(128 * 2 / 32 * 32 / 8), reg_buf_size(4096) {}
+    Core() : row_size_(128), col_size_(128), write_crossbar_cycles(5), pe_array_(8),  dac_resolution_(2),
+            pe_input_reg_size(128 * 32 / 8), pe_output_reg_size(128 * 2 / 32 * 32 / 8), reg_buf_size(4096) {}
 
     Core(Config &config) {}
 
@@ -168,32 +185,41 @@ public:
         inst_buf_.add(inst);
     }
 
-    void exec_dot(std::vector<bool> &mask1, std::vector<bool> &mask2) {
-        assert_msg(mask1.size() == pes_.size(), "Instruction error");
-        assert_msg(mask2.size() == row_size_, "Instruction error");
-        for(auto i : range(0, pes_.size())) {
-            if(mask1[i]) pes_[i].exec_inner_product(mask2, 32);
+    void exec_dot(std::vector<bool> &pe_mask) {
+        assert_msg(pe_mask.size() == pe_array_.size(), "Instruction error");
+        for(auto i : range(0, pe_mask.size())) {
+            if(pe_mask[i]) { 
+                pe_array_[i].exec_inner_product();
+            }
         }
     }
     
-    void exec_mov(LocalAddress &src, LocalAddress &dst, std::vector<bool> mask, int len, int clock) {
-        std::vector<Digital_t> data = read_data(src, len, clock);
-        write_data(dst, data, mask, clock);
-        
+    void exec_mov(LocalAddress &src, LocalAddress &dst, int len, int clock) {
+        DigitalBundle data = read_data(src, len, clock);
+        write_data(dst, data, clock);
     }
 
     void exec_nop() {
-
+        
     }
 
     void exec_halt() {
-
+        halt_ = true;
     }
 
     void exec_movi(LocalAddress &dst, int imm, int clock) {
-        write_data_to_reg(dst, Digital_t(imm, 32));
+        write_data(dst, Digital_t(imm, 32), clock);
     }
-    //void exec_movs(LocalAddress &src, LocalAddress &dst, std::vector<bool> &mask);
+
+    void exec_movs(LocalAddress &src, LocalAddress &dst, int len, std::vector<bool> &mask) {
+        assert_msg(mask.size() == len, "movs instruction format error");
+        DigitalBundle src = read_data_from_reg(src, len);
+        for(auto idx : range(0, len)) {
+            if(mask[idx]) {
+                write_data_to_reg(dst + idx, src[idx]);
+            }
+        }
+    }
 
     //void exec_load(TileAddress &src, LocalAddress &dst);
     //void exec_store(TileAddress &src);
@@ -201,8 +227,34 @@ public:
     // void exec_sum(std::vector<bool> &mask, LocalAddress &dst);
     // void exec_sub(std::vector<bool> &mask1, std::vector<bool> &mask2, LocalAddress &dst);
     //void exec_mul(LocalAddress &src1, LocalAddress &src2, LocalAddress &dst);
-    //void exec_shift_r(LocalAddress &src, LocalAddress &dst, int imm);
-    //void exec_shift_l(LocalAddress &src, LocalAddress &dst, int imm);
+    
+    void exec_shift_r(LocalAddress &src, LocalAddress &dst, int shift_bit, int clock) {
+        DigitalBundle src = read_data_from_reg(src, 1);
+        DigitalBundle src2(0, 0);
+        DigitalBundle dst = read_data_from_reg(dst, 1);
+        core_saa_[0].power_on(src2, src, shift_bit);
+        write_data_to_reg(dst, core_saa_[0].get_data());
+    }
+
+    void exec_shift_l(LocalAddress &src, LocalAddress &dst, int shift_bit, int clock) {
+        DigitalBundle src = read_data_from_reg(src, 1);
+        DigitalBundle src2(0, 0);
+        DigitalBundle dst = read_data_from_reg(dst, 1);
+        core_saa_[0].power_on(src2, src, shift_bit);
+        write_data_to_reg(dst, core_saa_[0].get_data());
+    }
+
+    void exec_shift_add(LocalAddress &src1, 
+        LocalAddress &src2, LocalAddress &dst, int len, int shift_bit) 
+        {
+        DigitalBundle src1 = read_data_from_reg(src1, len);
+        DigitalBundle src2 = read_data_from_reg(src2, len);
+        for(auto idx : range(0, core_saa_.size())) {
+            core_saa_[idx].power_on(src1, src2, shift_bit);
+            write_data_to_reg(dst + idx, core_saa_[idx].get_data());
+        }
+    }
+
     //void exec_mask(LocalAddress &src, LocalAddress &dst, int imm);
     //void exec_lut(LocalAddress &src, LocalAddress &dst);
 

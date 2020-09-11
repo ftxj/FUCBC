@@ -5,6 +5,7 @@
 #include<set>
 #include "error/assert.hpp"
 #include "hardware_simulator/digital.hpp"
+#include "hardware_simulator/hardware_type.hpp"
 #include <iomanip>
 
 class CrossBar {
@@ -28,23 +29,51 @@ private:
     int latency_rd_;
     int latency_wr_;
 
+    size_t ou_cols_;
+    size_t ou_rows_;
+
 public:
 
     CrossBar() : col_size_(128), row_size_(128), 
         cell_bits_(2), data_bits_(32), matrix_(128, AnalogBundle(128)) {}
     CrossBar(size_t size);
-    CrossBar(Config);
-
-    void dunmp(std::ostream &out) {
-        out << "\n";
-        for(auto i : matrix_) {
-            for(auto j : i) {
-                j.print();
-                out << " ";    
-            }
-            out << "\n";
-        }
+    
+    CrossBar(Config &c) : matrix_(c.crossbar_rows_, AnalogBundle(c.crossbar_cols_)){
+        col_size_ = c.crossbar_cols_;
+        row_size_ = c.crossbar_rows_;
+        cell_bits_ = c.crossbar_cell_width_;
+        
+        data_bits_ = c.crossbar_represent_number_bits_;
+        
+        ou_cols_ = c.crossbar_ou_cols_;
+        ou_rows_ = c.crossbar_ou_rows_;
     }
+
+    void dump(std::ostream &out) {
+        bool out_empty = false;
+        int out_empty_begin = 0;
+        for(auto d : range(0, row_size_)) {
+            if(!matrix_[d].is_zero()) {
+                if(out_empty) {
+                    out << d - out_empty_begin << "}\n"; 
+                }
+                matrix_[d].dump(out);
+                out_empty = false;
+            }
+            else {
+                if(!out_empty) {
+                    out_empty_begin = d;
+                    out << "{...";
+                    out_empty = true;
+                }
+            }
+        }
+        if(out_empty) {
+             out << row_size_ - out_empty_begin << "}"; 
+        }
+        out << "\n";
+    }
+    
     void clear() {
         for(auto i : range(0, row_size_)) {
             matrix_[i] = AnalogBundle(col_size_);
@@ -58,7 +87,7 @@ public:
 
     AnalogBundle read_row(int row) { return matrix_t_[row]; }
 
-    void write(int col, int row, Analog_t value) {
+    void write_dummy(int col, int row, Analog_t value) {
         assert_msg(col < col_size_, "col index outof bound");
         assert_msg(row < row_size_, "row index outof bound");
         matrix_[row][col] = value;
@@ -108,11 +137,26 @@ public:
         return res;
     }
 
+
+    AnalogBundle dot(AnalogBundle &inp, int ou_col_index) {
+        num_access_ += 1;
+        //TODO use lambda replace loop nest
+        AnalogBundle res(col_size_, 0);
+        for(size_t i = ou_cols_ * ou_col_index; i < ou_cols_ * ou_col_index + ou_cols_; ++i) {
+            for(size_t j = 0; j < row_size_; ++j) {
+                res[i] += matrix_[j][i] * inp[j];
+            }
+        }
+        return res;
+    }
+
     void load_data(std::vector<AnalogBundle> matrix) {
         matrix_ = matrix;
     }
     
     void load_data(std::vector<std::vector<float>> matrix) {
+        assert_msg(matrix.size() == row_size_, "load data error" << matrix.size() << "!="<< row_size_);
+        assert_msg(matrix[0].size() == col_size_, "load data error");
         for(int i = 0; i < row_size_; ++i) {
             matrix_[i] = matrix[i];
         }
