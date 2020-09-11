@@ -1,5 +1,7 @@
+#pragma once
 #include <vector>
 #include "error/assert.hpp"
+
 template<typename T, typename T2>
 std::vector<T> baseline_dot(std::vector<std::vector<T2>> &matrix, std::vector<T> &inp) {
     assert_msg(matrix.size() > 0, "wuwwu ");
@@ -30,16 +32,16 @@ void fill_int_vector_with_random_number(std::vector<int>::iterator &begin, std::
 
 
 
-void fill_vector_with_random_number(std::vector<float> &vec, float max) {
+void fill_vector_with_random_number(std::vector<int> &vec, int max) {
     auto gen = [&max](){
-        return static_cast <float> (rand()) / (static_cast <float> (RAND_MAX/max));
+        return static_cast <int> (rand()) / (static_cast <int> (RAND_MAX/max));
     };
     std::generate(std::begin(vec), std::end(vec), gen);
 }
 
 
 
-void fill_matrix_with_random_number(std::vector<std::vector<float>> &matrix, float max) {
+void fill_matrix_with_random_number(std::vector<std::vector<int>> &matrix, int max) {
     for(int i = 0; i < matrix.size(); ++i) {
         fill_vector_with_random_number(matrix[i], max);
     }

@@ -79,7 +79,7 @@ TEST_CASE("Inner Product") {
     };
     
 
-    std::vector<std::vector<float>> weight_origin = {
+    std::vector<std::vector<int>> weight_origin = {
         {1, 0, 7, 0},   // 1, 0, 7, 0
         {2, 4, 15, 10},   // 2, 4, 15, 10
 
@@ -123,6 +123,14 @@ TEST_CASE("Inner Product") {
     std::vector<int> res = {
 
     };
+
+    SECTION("Compression Test") {
+        auto cb_matrix = matrix_in_out(weight_origin, 4, 2);
+        REQUIRE(cb_matrix == weight);
+        auto res = compression(cb_matrix, 8, 2, 2);
+        REQUIRE(res.second == index_in);
+        REQUIRE(suit_crossbar(res.first, 8, 8)[0] == weight_2);
+    }
 
     SECTION("Absolute Address Gen") { 
         
@@ -202,6 +210,69 @@ TEST_CASE("Inner Product") {
         pe.cross_bar_.load_data(weight_2);
         pe.exec_inner_product();
         REQUIRE(pe.pe_output_.read(0, 4).to_int_vector() == baseline_dot(weight_origin, input));
+    }
+
+
+    SECTION("Random test") { 
+
+
+        Config c;
+
+        c.crossbar_rows_ = 128;
+        c.crossbar_cols_ = 128;
+        c.crossbar_cell_width_ = 2;
+        
+        c.crossbar_ou_rows_ = 16;
+        c.crossbar_ou_cols_ = 16;
+        
+        c.crossbar_represent_number_bits_ = 16;
+        
+        c.dac_resolution_ = 1;
+        c.adc_resolution_ = 9;
+        
+        c.shift_add_width_ = 64;
+
+        c.input_reg_size_ = 1024;
+        c.input_reg_data_width_ = 16;
+        
+        c.output_reg_size_ = 1024;
+        c.output_reg_data_width_ = 32;
+
+
+        PE pe(c);
+
+        std::vector<std::vector<int>> weight(c.crossbar_rows_, std::vector<int>(
+            (c.crossbar_cols_ * c.crossbar_cell_width_) / c.crossbar_represent_number_bits_
+        ));
+
+        std::vector<int> input(c.crossbar_rows_);
+        
+        fill_matrix_with_random_number(weight,  (1 << c.crossbar_represent_number_bits_) -1 );
+        fill_int_vector_with_random_number(input, (1 << c.input_reg_data_width_) - 1);
+        
+        auto cb_matrix = matrix_in_out(weight, c.crossbar_represent_number_bits_, c.crossbar_cell_width_);
+
+        auto data = compression(cb_matrix, c.crossbar_rows_, c.crossbar_ou_rows_, c.crossbar_ou_cols_);
+
+        auto cb_in = suit_crossbar(data.first, c.crossbar_rows_, c.crossbar_cols_)[0];
+
+        pe.index_decoder_.load_data(data.second);
+        
+        pe.pe_input_.load_data(input , c.input_reg_data_width_);
+
+        pe.cross_bar_.load_data(cb_in);
+        
+        pe.exec_inner_product();
+        
+        // std::cout << "--------------" << std::endl;
+        // dump(weight);
+        // std::cout << "--------------" << std::endl;
+        // dump(input);
+        // std::cout << "--------------" << std::endl;
+        // dump(cb_in);
+        // std::cout << "--------------" << std::endl;
+        REQUIRE(pe.pe_output_.read(0, (c.crossbar_cell_width_ * c.crossbar_cols_) / c.crossbar_represent_number_bits_
+        ).to_int_vector() == baseline_dot(weight, input));
     }
 }
 //    return 0;
